@@ -68,11 +68,6 @@
         </van-button>
       </div>
 
-      <div v-if="error" class="error-msg">
-        <van-icon name="warning-o" />
-        {{ error }}
-      </div>
-
       <div v-if="needsCrop && !isCropped" class="warning-msg">
         <van-icon name="info-o" />
         视频时长超过5秒，请裁剪后继续
@@ -289,16 +284,6 @@ const nextStep = () => {
   font-size: 16px;
   font-weight: 500;
   color: #1A1A1A;
-}
-
-.error-msg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: #EF4444;
-  font-size: 14px;
-  margin-top: 16px;
 }
 
 .warning-msg {
