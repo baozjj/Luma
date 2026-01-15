@@ -40,7 +40,7 @@ const routes = [
   {
     path: '/create/decorate',
     name: 'Decorate',
-    component: () => import('@/views/create/Decorate.vue'),
+    component: () => import('@/views/create/Decorate/index.vue'),
     meta: { title: '边框装饰' }
   },
   {
