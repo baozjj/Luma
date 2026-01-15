@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
+    redirect: '/main',
     component: () => import('@/layouts/TabLayout.vue'),
     children: [
       {
