@@ -5,6 +5,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { createCompositeCardTexture } from "@/utils/cardCompositor";
 
 const props = defineProps<{
@@ -47,6 +48,7 @@ const fragmentShader = `
   uniform sampler2D uTexture0;
   uniform sampler2D uTexture1;
   uniform sampler2D uTexture2;
+  uniform sampler2D uBorderMask;
   
   uniform float uLenses;
   uniform float uRefraction;
@@ -54,6 +56,7 @@ const fragmentShader = `
   uniform float uFocus;
   uniform float uGlossiness;
   uniform float uSpecularInt;
+  uniform vec3 uBorderColor;
 
   varying vec2 vUv;
   varying vec3 vNormal;
@@ -61,55 +64,88 @@ const fragmentShader = `
   varying vec3 vLightDir;
 
   void main() {
-    // Lenticular effect for complete card (with borders and stickers already composited)
-    float lensUvX = fract(vUv.x * uLenses); 
-    float localX = (lensUvX - 0.5) * 2.0;
-    float localZ = sqrt(1.0 - clamp(localX * localX, 0.0, 0.99));
+    // 读取边框遮罩，判断当前像素是边框还是内容区域
+    vec4 maskColor = texture2D(uBorderMask, vUv);
+    float isBorder = maskColor.r; // 1.0 = 边框, 0.0 = 内容区域
     
-    vec3 lensNormalLocal = normalize(vec3(localX * 0.5, 0.0, localZ));
-    
-    vec3 tangent = normalize(cross(vec3(0.0, 1.0, 0.0), vNormal));
-    if (length(tangent) < 0.001) tangent = vec3(1.0, 0.0, 0.0);
-    vec3 bitangent = normalize(cross(vNormal, tangent));
-    
-    vec3 finalNormal = normalize(
-      tangent * lensNormalLocal.x + 
-      vNormal * lensNormalLocal.z
-    );
-
-    float viewAngle = dot(vViewDir, tangent);
-    float compositePhase = (viewAngle * uRefraction) + (vUv.x * uPitch);
-    
-    float prog = mod(compositePhase, 3.0);
-    if(prog < 0.0) prog += 3.0;
-
-    float w0 = max(0.0, 1.0 - abs(prog - 0.0)) + max(0.0, 1.0 - abs(prog - 3.0));
-    float w1 = max(0.0, 1.0 - abs(prog - 1.0));
-    float w2 = max(0.0, 1.0 - abs(prog - 2.0));
-    
-    w0 = pow(w0, uFocus);
-    w1 = pow(w1, uFocus);
-    w2 = pow(w2, uFocus);
-    
-    float totalW = w0 + w1 + w2;
-    w0 /= totalW;
-    w1 /= totalW;
-    w2 /= totalW;
-
+    // 读取纹理颜色（包含贴纸）
     vec4 tex0 = texture2D(uTexture0, vUv);
     vec4 tex1 = texture2D(uTexture1, vUv);
     vec4 tex2 = texture2D(uTexture2, vUv);
-
-    vec3 albedo = (tex0.rgb * w0) + (tex1.rgb * w1) + (tex2.rgb * w2);
-
-    vec3 halfVec = normalize(vLightDir + vViewDir);
-    float NdotH = max(0.0, dot(finalNormal, halfVec));
-    float specular = pow(NdotH, uGlossiness) * uSpecularInt;
     
-    float NdotV = max(0.0, dot(finalNormal, vViewDir));
-    float fresnel = pow(1.0 - NdotV, 4.0) * 0.5;
+    vec3 finalColor;
+    vec3 finalNormal = vNormal;
+    
+    if (isBorder > 0.5) {
+      // 边框区域：检查是否有贴纸（颜色与边框颜色不同）
+      // 如果纹理颜色与边框颜色差异较大，说明有贴纸，直接显示纹理
+      vec3 avgTexColor = (tex0.rgb + tex1.rgb + tex2.rgb) / 3.0;
+      float colorDiff = length(avgTexColor - uBorderColor);
+      
+      if (colorDiff > 0.1) {
+        // 有贴纸：直接显示纹理，不应用光栅效果
+        finalColor = avgTexColor;
+      } else {
+        // 纯边框：使用边框颜色，添加边缘高光
+        finalColor = uBorderColor;
+        
+        // 添加边缘高光，让白色边框可见
+        float NdotV = max(0.0, dot(vNormal, vViewDir));
+        float edgeGlow = pow(1.0 - NdotV, 3.0) * 0.15;
+        finalColor += vec3(edgeGlow);
+        
+        // 添加细微的环境光遮蔽
+        float ao = 0.95;
+        finalColor *= ao;
+      }
+    } else {
+      // 内容区域：应用光栅效果
+      float lensUvX = fract(vUv.x * uLenses); 
+      float localX = (lensUvX - 0.5) * 2.0;
+      float localZ = sqrt(1.0 - clamp(localX * localX, 0.0, 0.99));
+      
+      vec3 lensNormalLocal = normalize(vec3(localX * 0.5, 0.0, localZ));
+      
+      vec3 tangent = normalize(cross(vec3(0.0, 1.0, 0.0), vNormal));
+      if (length(tangent) < 0.001) tangent = vec3(1.0, 0.0, 0.0);
+      
+      finalNormal = normalize(
+        tangent * lensNormalLocal.x + 
+        vNormal * lensNormalLocal.z
+      );
 
-    gl_FragColor = vec4(albedo + specular + fresnel, 1.0);
+      float viewAngle = dot(vViewDir, tangent);
+      float compositePhase = (viewAngle * uRefraction) + (vUv.x * uPitch);
+      
+      float prog = mod(compositePhase, 3.0);
+      if(prog < 0.0) prog += 3.0;
+
+      float w0 = max(0.0, 1.0 - abs(prog - 0.0)) + max(0.0, 1.0 - abs(prog - 3.0));
+      float w1 = max(0.0, 1.0 - abs(prog - 1.0));
+      float w2 = max(0.0, 1.0 - abs(prog - 2.0));
+      
+      w0 = pow(w0, uFocus);
+      w1 = pow(w1, uFocus);
+      w2 = pow(w2, uFocus);
+      
+      float totalW = w0 + w1 + w2;
+      w0 /= totalW;
+      w1 /= totalW;
+      w2 /= totalW;
+
+      finalColor = (tex0.rgb * w0) + (tex1.rgb * w1) + (tex2.rgb * w2);
+
+      vec3 halfVec = normalize(vLightDir + vViewDir);
+      float NdotH = max(0.0, dot(finalNormal, halfVec));
+      float specular = pow(NdotH, uGlossiness) * uSpecularInt;
+      
+      float NdotV = max(0.0, dot(finalNormal, vViewDir));
+      float fresnel = pow(1.0 - NdotV, 4.0) * 0.5;
+
+      finalColor += specular + fresnel;
+    }
+
+    gl_FragColor = vec4(finalColor, 1.0);
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/2.2));
   }
 `;
@@ -129,6 +165,52 @@ async function createFrameTexture(
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 16;
   return texture;
+}
+
+function createBorderMask(): THREE.Texture {
+  // 创建边框遮罩纹理：白色=边框，黑色=内容区域
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1434;
+  const ctx = canvas.getContext("2d")!;
+
+  // 计算边框宽度（与 cardCompositor.ts 保持一致）
+  const borderWidthMap = {
+    narrow: canvas.width * (16 / 360),
+    medium: canvas.width * (24 / 360),
+    wide: canvas.width * (48 / 360),
+  };
+  const borderPx =
+    borderWidthMap[
+      (props.borderWidth as "narrow" | "medium" | "wide") || "wide"
+    ];
+
+  // 整个画布填充白色（边框）
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 内容区域填充黑色
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(
+    borderPx,
+    borderPx,
+    canvas.width - borderPx * 2,
+    canvas.height - borderPx * 2
+  );
+
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+function hexToRgb(hex: string): THREE.Vector3 {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? new THREE.Vector3(
+        parseInt(result[1], 16) / 255,
+        parseInt(result[2], 16) / 255,
+        parseInt(result[3], 16) / 255
+      )
+    : new THREE.Vector3(1, 1, 1);
 }
 
 async function init() {
@@ -174,14 +256,31 @@ async function init() {
     createFrameTexture(props.frames[2] || props.frames[0] || "", 2),
   ]);
 
-  const geometry = new THREE.PlaneGeometry(4.5, 6.3, 128, 128);
-  const material = new THREE.ShaderMaterial({
+  const borderMask = createBorderMask();
+  const borderColor = hexToRgb(props.borderColor || "#FFFFFF");
+
+  // 使用 RoundedBoxGeometry 创建有厚度和圆角的卡片
+  const cardThickness = 0.08;
+  const cornerRadius = 0.15; // 圆角半径
+  const smoothness = 8; // 圆角平滑度
+  const geometry = new RoundedBoxGeometry(
+    4.5,
+    6.3,
+    cardThickness,
+    smoothness,
+    cornerRadius
+  );
+
+  // 为正面创建光栅材质
+  const frontMaterial = new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
     uniforms: {
       uTexture0: { value: textures[0] },
       uTexture1: { value: textures[1] },
       uTexture2: { value: textures[2] },
+      uBorderMask: { value: borderMask },
+      uBorderColor: { value: borderColor },
       uLenses: { value: 120.0 },
       uRefraction: { value: 3.5 },
       uPitch: { value: 0.5 },
@@ -189,24 +288,45 @@ async function init() {
       uGlossiness: { value: 80.0 },
       uSpecularInt: { value: 1.0 },
     },
-    side: THREE.DoubleSide,
   });
 
-  mesh = new THREE.Mesh(geometry, material);
+  // 背面和侧面使用简单的白色材质
+  const sideMaterial = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(borderColor.x, borderColor.y, borderColor.z),
+    metalness: 0.1,
+    roughness: 0.4,
+  });
+
+  // 为 Box 的 6 个面分配材质：右、左、上、下、前、后
+  const materials = [
+    sideMaterial, // 右侧
+    sideMaterial, // 左侧
+    sideMaterial, // 上侧
+    sideMaterial, // 下侧
+    frontMaterial, // 正面（光栅效果）
+    frontMaterial, // 背面（也应用光栅效果）
+  ];
+
+  mesh = new THREE.Mesh(geometry, materials);
   scene.add(mesh);
 
-  // Add shadow plane behind card for depth
-  const shadowGeometry = new THREE.PlaneGeometry(4.8, 6.3);
-  const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+  // 添加阴影平面增加深度感
+  const shadowGeometry = new THREE.PlaneGeometry(5.0, 7.0);
+  const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.2 });
   const shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
-  shadowMesh.position.z = -0.1;
+  shadowMesh.position.z = -0.15;
   shadowMesh.receiveShadow = true;
   scene.add(shadowMesh);
 
-  // Enable shadows on the card
+  // 启用阴影
   mesh.castShadow = true;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  // 配置灯光投射阴影
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.width = 2048;
+  keyLight.shadow.mapSize.height = 2048;
 
   if (containerRef.value) {
     containerRef.value.addEventListener("mousemove", handleMouseMove);
@@ -294,16 +414,41 @@ function cleanup() {
 }
 
 async function updateTextures() {
-  if (mesh && mesh.material instanceof THREE.ShaderMaterial) {
+  if (mesh && Array.isArray(mesh.material)) {
     const textures = await Promise.all([
       createFrameTexture(props.frames[0] || "", 0),
       createFrameTexture(props.frames[1] || props.frames[0] || "", 1),
       createFrameTexture(props.frames[2] || props.frames[0] || "", 2),
     ]);
 
-    mesh.material.uniforms.uTexture0.value = textures[0];
-    mesh.material.uniforms.uTexture1.value = textures[1];
-    mesh.material.uniforms.uTexture2.value = textures[2];
+    const borderMask = createBorderMask();
+    const borderColor = hexToRgb(props.borderColor || "#FFFFFF");
+
+    // 更新正面和背面材质（索引 4 和 5）
+    const frontMaterial = mesh.material[4] as THREE.ShaderMaterial;
+    const backMaterial = mesh.material[5] as THREE.ShaderMaterial;
+
+    if (frontMaterial.uniforms) {
+      frontMaterial.uniforms.uTexture0.value = textures[0];
+      frontMaterial.uniforms.uTexture1.value = textures[1];
+      frontMaterial.uniforms.uTexture2.value = textures[2];
+      frontMaterial.uniforms.uBorderMask.value = borderMask;
+      frontMaterial.uniforms.uBorderColor.value = borderColor;
+    }
+
+    if (backMaterial.uniforms) {
+      backMaterial.uniforms.uTexture0.value = textures[0];
+      backMaterial.uniforms.uTexture1.value = textures[1];
+      backMaterial.uniforms.uTexture2.value = textures[2];
+      backMaterial.uniforms.uBorderMask.value = borderMask;
+      backMaterial.uniforms.uBorderColor.value = borderColor;
+    }
+
+    // 更新侧面材质颜色
+    for (let i = 0; i < 4; i++) {
+      const sideMat = mesh.material[i] as THREE.MeshStandardMaterial;
+      sideMat.color.setRGB(borderColor.x, borderColor.y, borderColor.z);
+    }
   }
 }
 

@@ -81,15 +81,24 @@ export async function createCompositeCardTexture(options: CardCompositeOptions):
   ctx.rect(0, 0, width, height)
   ctx.clip()
 
-  // 5. 绘制贴纸
+  // 5. 绘制贴纸（只显示边框区域的部分，裁剪掉光栅卡区域的部分）
+  // 创建边框区域的裁剪路径（排除内容区域）
+  ctx.save()
+  ctx.beginPath()
+  // 外边框
+  ctx.rect(0, 0, width, height)
+  // 内容区域（反向裁剪）
+  ctx.rect(borderPx, borderPx, contentWidth, contentHeight)
+  ctx.clip('evenodd') // 使用 evenodd 规则，创建镂空效果
+  
   for (const sticker of stickers) {
-    ctx.save()
-    
     // 计算贴纸位置（相对于整个卡片，包括边框）
-    // 注意：编辑界面使用 translate(-50%, -50%) 来居中，这里通过 textAlign 和 textBaseline 实现相同效果
     const stickerX = ((sticker.x + STICKER_OFFSET_X) / 100) * width
     const stickerY = ((sticker.y + STICKER_OFFSET_Y) / 100) * height
     
+    ctx.save()
+    
+    // 注意：编辑界面使用 translate(-50%, -50%) 来居中，这里通过 textAlign 和 textBaseline 实现相同效果
     ctx.translate(stickerX, stickerY)
     ctx.rotate((sticker.rotation * Math.PI) / 180)
     ctx.scale(sticker.scale, sticker.scale)
@@ -110,8 +119,11 @@ export async function createCompositeCardTexture(options: CardCompositeOptions):
     
     ctx.restore()
   }
+  
+  // 恢复边框裁剪
+  ctx.restore()
 
-  // 恢复裁剪前的状态
+  // 恢复整体裁剪前的状态
   ctx.restore()
 
   return canvas
