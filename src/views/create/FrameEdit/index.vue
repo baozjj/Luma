@@ -1,17 +1,13 @@
 <template>
   <div class="frame-edit">
-    <van-nav-bar 
-      title="抽帧预览" 
-      left-arrow 
-      @click-left="goBack"
-    />
+    <van-nav-bar title="抽帧预览" left-arrow @click-left="goBack" />
 
     <div class="content">
       <div class="preview-area">
         <div class="card-preview">
-          <img 
-            v-if="currentFrame" 
-            :src="currentFrame" 
+          <img
+            v-if="currentFrame"
+            :src="currentFrame"
             alt="当前帧"
             class="frame-image"
           />
@@ -27,10 +23,10 @@
           <span class="section-title">帧序列</span>
           <span class="frame-hint">建议 8-12 帧效果最佳</span>
         </div>
-        
+
         <div class="frames-list">
-          <div 
-            v-for="(frame, index) in frames" 
+          <div
+            v-for="(frame, index) in frames"
             :key="index"
             class="frame-item"
             :class="{ active: index === currentIndex }"
@@ -43,19 +39,15 @@
       </div>
 
       <div class="actions">
-        <van-button 
-          size="small" 
-          plain
-          @click="extractFrames"
-        >
+        <van-button size="small" plain @click="extractFrames">
           重新抽帧
         </van-button>
       </div>
     </div>
 
     <div class="footer">
-      <van-button 
-        type="primary" 
+      <van-button
+        type="primary"
         size="large"
         :disabled="frames.length < 2"
         class="btn-primary"
@@ -68,98 +60,142 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { NavBar as VanNavBar, Button as VanButton, Loading as VanLoading, showToast } from 'vant'
-import { useCardStore } from '@/stores/card'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import {
+  NavBar as VanNavBar,
+  Button as VanButton,
+  Loading as VanLoading,
+  showToast,
+} from "vant";
+import { useCardStore } from "@/stores/card";
 
-const router = useRouter()
-const cardStore = useCardStore()
+const router = useRouter();
+const cardStore = useCardStore();
 
-const frames = ref<string[]>([])
-const currentIndex = ref(0)
-const isExtracting = ref(false)
+const frames = ref<string[]>([]);
+const currentIndex = ref(0);
+const isExtracting = ref(false);
 
-const currentFrame = computed(() => frames.value[currentIndex.value])
+const currentFrame = computed(() => frames.value[currentIndex.value]);
 
 const goBack = () => {
-  router.back()
-}
+  router.back();
+};
 
 const selectFrame = (index: number) => {
-  currentIndex.value = index
-}
+  currentIndex.value = index;
+};
 
 const extractFrames = async () => {
   if (!cardStore.videoUrl) {
-    showToast('请先上传视频')
-    router.push('/create')
-    return
+    showToast("请先上传视频");
+    router.push("/create");
+    return;
   }
 
-  isExtracting.value = true
-  frames.value = []
+  isExtracting.value = true;
+  frames.value = [];
 
-  const video = document.createElement('video')
-  video.src = cardStore.videoUrl
-  video.crossOrigin = 'anonymous'
+  try {
+    const video = document.createElement("video");
+    video.src = cardStore.videoUrl;
+    video.crossOrigin = "anonymous";
+    video.playsInline = true;
+    video.muted = true;
+    video.preload = "metadata";
 
-  await new Promise((resolve) => {
-    video.onloadedmetadata = resolve
-  })
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("视频加载超时"));
+      }, 10000);
 
-  const duration = video.duration
-  const frameCount = Math.min(Math.max(Math.round(duration * 3), 6), 12)
-  const interval = duration / frameCount
+      video.onloadedmetadata = () => {
+        clearTimeout(timeout);
+        resolve(null);
+      };
 
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-  
-  if (!ctx) return
+      video.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error("视频加载失败"));
+      };
 
-  const extractedFrames: string[] = []
+      video.load();
+    });
 
-  for (let i = 0; i < frameCount; i++) {
-    video.currentTime = i * interval
-    await new Promise((resolve) => {
-      video.onseeked = resolve
-    })
+    const duration = video.duration;
+    const frameCount = Math.min(Math.max(Math.round(duration * 3), 6), 12);
+    const interval = duration / frameCount;
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    ctx.drawImage(video, 0, 0)
-    
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
-    extractedFrames.push(dataUrl)
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      throw new Error("无法创建画布");
+    }
+
+    const extractedFrames: string[] = [];
+
+    for (let i = 0; i < frameCount; i++) {
+      video.currentTime = i * interval;
+
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error("视频定位超时"));
+        }, 5000);
+
+        video.onseeked = () => {
+          clearTimeout(timeout);
+          resolve(null);
+        };
+
+        video.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error("视频定位失败"));
+        };
+      });
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      extractedFrames.push(dataUrl);
+    }
+
+    frames.value = extractedFrames;
+    cardStore.setFrames(extractedFrames);
+    showToast("抽帧完成");
+  } catch (error) {
+    console.error("抽帧失败:", error);
+    showToast(error instanceof Error ? error.message : "抽帧失败，请重试");
+  } finally {
+    isExtracting.value = false;
   }
-
-  frames.value = extractedFrames
-  cardStore.setFrames(extractedFrames)
-  isExtracting.value = false
-}
+};
 
 const nextStep = () => {
   if (frames.value.length < 2) {
-    showToast('至少需要2帧')
-    return
+    showToast("至少需要2帧");
+    return;
   }
-  cardStore.setFrames(frames.value)
-  router.push('/create/decorate')
-}
+  cardStore.setFrames(frames.value);
+  router.push("/create/decorate");
+};
 
 onMounted(() => {
   if (cardStore.frames.length) {
-    frames.value = cardStore.frames
+    frames.value = cardStore.frames;
   } else {
-    extractFrames()
+    extractFrames();
   }
-})
+});
 </script>
 
 <style scoped>
 .frame-edit {
   min-height: 100vh;
-  background: #FAFAFA;
+  background: #fafafa;
   display: flex;
   flex-direction: column;
 }
@@ -196,12 +232,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F3F4F6;
+  background: #f3f4f6;
 }
 
 .frame-index {
   font-size: 14px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-top: 12px;
 }
 
@@ -221,12 +257,12 @@ onMounted(() => {
 .section-title {
   font-size: 16px;
   font-weight: 500;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .frame-hint {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .frames-list {
@@ -248,7 +284,7 @@ onMounted(() => {
 }
 
 .frame-item.active {
-  border-color: #1A1A1A;
+  border-color: #1a1a1a;
 }
 
 .frame-item img {
@@ -280,7 +316,7 @@ onMounted(() => {
 
 .btn-primary {
   width: 100%;
-  background: #1A1A1A !important;
-  border-color: #1A1A1A !important;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
 }
 </style>

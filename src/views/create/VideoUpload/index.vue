@@ -1,13 +1,13 @@
 <template>
   <div class="video-upload">
     <!-- 裁剪模式 -->
-    <van-popup 
-      v-model:show="showCropper" 
+    <van-popup
+      v-model:show="showCropper"
       position="bottom"
       :style="{ height: '100%' }"
       :close-on-click-overlay="false"
     >
-      <VideoCropper 
+      <VideoCropper
         v-if="showCropper"
         :video-url="videoUrl"
         @confirm="handleCropConfirm"
@@ -16,11 +16,7 @@
     </van-popup>
 
     <!-- 上传模式 -->
-    <van-nav-bar 
-      title="上传视频" 
-      left-arrow 
-      @click-left="goBack"
-    />
+    <van-nav-bar title="上传视频" left-arrow @click-left="goBack" />
 
     <div class="content">
       <div class="upload-area" @click="triggerUpload">
@@ -30,9 +26,9 @@
           <p class="upload-hint">支持 MP4、MOV，≤50MB</p>
         </template>
         <template v-else>
-          <video 
+          <video
             ref="videoRef"
-            :src="croppedVideoUrl || videoUrl" 
+            :src="croppedVideoUrl || videoUrl"
             class="video-preview"
             controls
             playsinline
@@ -40,9 +36,9 @@
         </template>
       </div>
 
-      <input 
+      <input
         ref="fileInput"
-        type="file" 
+        type="file"
         accept="video/mp4,video/quicktime"
         class="hidden"
         @change="handleFileChange"
@@ -57,7 +53,7 @@
           <span class="label">大小</span>
           <span class="value">{{ fileSize }}MB</span>
         </div>
-        <van-button 
+        <van-button
           v-if="needsCrop"
           size="small"
           type="primary"
@@ -75,17 +71,17 @@
     </div>
 
     <div class="footer">
-      <van-button 
+      <van-button
         v-if="videoUrl"
-        type="default" 
+        type="default"
         size="large"
         class="btn-secondary"
         @click="reupload"
       >
         重新上传
       </van-button>
-      <van-button 
-        type="primary" 
+      <van-button
+        type="primary"
         size="large"
         :disabled="!canProceed"
         class="btn-primary"
@@ -98,120 +94,136 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { NavBar as VanNavBar, Icon as VanIcon, Button as VanButton, Popup as VanPopup, showToast } from 'vant'
-import { useCardStore } from '@/stores/card'
-import VideoCropper from './components/VideoCropper/index.vue'
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import {
+  NavBar as VanNavBar,
+  Icon as VanIcon,
+  Button as VanButton,
+  Popup as VanPopup,
+  showToast,
+} from "vant";
+import { useCardStore } from "@/stores/card";
+import VideoCropper from "./components/VideoCropper/index.vue";
 
-const router = useRouter()
-const cardStore = useCardStore()
+const router = useRouter();
+const cardStore = useCardStore();
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const videoRef = ref<HTMLVideoElement | null>(null)
-const videoUrl = ref('')
-const croppedVideoUrl = ref('')
-const duration = ref(0)
-const croppedDuration = ref(0)
-const fileSize = ref(0)
-const error = ref('')
-const showCropper = ref(false)
-const isCropped = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null);
+const videoRef = ref<HTMLVideoElement | null>(null);
+const videoUrl = ref("");
+const croppedVideoUrl = ref("");
+const duration = ref(0);
+const croppedDuration = ref(0);
+const fileSize = ref(0);
+const error = ref("");
+const showCropper = ref(false);
+const isCropped = ref(false);
 
-const needsCrop = computed(() => duration.value > 5)
-const displayDuration = computed(() => isCropped.value ? croppedDuration.value : duration.value)
+const needsCrop = computed(() => duration.value > 5);
+const displayDuration = computed(() =>
+  isCropped.value ? croppedDuration.value : duration.value
+);
 
 const canProceed = computed(() => {
-  if (!videoUrl.value) return false
-  if (needsCrop.value && !isCropped.value) return false
-  const d = displayDuration.value
-  return d >= 1 && d <= 5 && !error.value
-})
+  if (!videoUrl.value) return false;
+  if (needsCrop.value && !isCropped.value) return false;
+  const d = displayDuration.value;
+  return d >= 1 && d <= 5 && !error.value;
+});
 
 const goBack = () => {
-  router.back()
-}
+  router.back();
+};
 
 const triggerUpload = () => {
-  fileInput.value?.click()
-}
+  fileInput.value?.click();
+};
 
 const openCropper = () => {
-  showCropper.value = true
-}
+  showCropper.value = true;
+};
 
 const handleFileChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
 
-  error.value = ''
-  
-  const sizeMB = file.size / (1024 * 1024)
+  error.value = "";
+
+  const sizeMB = file.size / (1024 * 1024);
   if (sizeMB > 50) {
-    error.value = '视频大小不能超过50MB'
-    return
+    error.value = "视频大小不能超过50MB";
+    return;
   }
-  fileSize.value = Number(sizeMB.toFixed(1))
+  fileSize.value = Number(sizeMB.toFixed(1));
 
-  const url = URL.createObjectURL(file)
-  videoUrl.value = url
+  const url = URL.createObjectURL(file);
+  videoUrl.value = url;
 
-  const video = document.createElement('video')
-  video.src = url
+  const video = document.createElement("video");
+  video.src = url;
   video.onloadedmetadata = () => {
-    duration.value = Math.round(video.duration * 10) / 10
+    duration.value = Math.round(video.duration * 10) / 10;
     if (video.duration > 5) {
-      error.value = '视频时长超过5秒，请裁剪后上传'
+      error.value = "视频时长超过5秒，请裁剪后上传";
     } else if (video.duration < 1) {
-      error.value = '视频时长不足1秒'
+      error.value = "视频时长不足1秒";
     }
-  }
+  };
 
-  cardStore.setVideo(file)
-}
+  cardStore.setVideo(file);
+};
 
-const handleCropConfirm = async ({ startTime, endTime, duration: cropDuration }: { startTime: number; endTime: number; duration: number }) => {
-  showCropper.value = false
-  isCropped.value = true
-  croppedDuration.value = Math.round(cropDuration * 10) / 10
-  error.value = ''
-  
+const handleCropConfirm = async ({
+  startTime,
+  endTime,
+  duration: cropDuration,
+}: {
+  startTime: number;
+  endTime: number;
+  duration: number;
+}) => {
+  showCropper.value = false;
+  isCropped.value = true;
+  croppedDuration.value = Math.round(cropDuration * 10) / 10;
+  error.value = "";
+
   showToast({
-    message: '裁剪成功',
-    icon: 'success'
-  })
-  
-  cardStore.cropInfo = { startTime, endTime }
-}
+    message: "裁剪成功",
+    icon: "success",
+  });
+
+  cardStore.cropInfo = { startTime, endTime };
+};
 
 const handleCropCancel = () => {
-  showCropper.value = false
-}
+  showCropper.value = false;
+};
 
 const reupload = () => {
-  videoUrl.value = ''
-  croppedVideoUrl.value = ''
-  duration.value = 0
-  croppedDuration.value = 0
-  fileSize.value = 0
-  error.value = ''
-  isCropped.value = false
+  videoUrl.value = "";
+  croppedVideoUrl.value = "";
+  duration.value = 0;
+  croppedDuration.value = 0;
+  fileSize.value = 0;
+  error.value = "";
+  isCropped.value = false;
   if (fileInput.value) {
-    fileInput.value.value = ''
+    fileInput.value.value = "";
   }
-}
+};
 
 const nextStep = () => {
-  if (!canProceed.value) return
-  router.push('/create/frames')
-}
+  if (!canProceed.value) return;
+  router.push("/create/frames");
+};
 </script>
 
 <style scoped>
 .video-upload {
-  min-height: 100vh;
-  background: #FAFAFA;
+  max-height: 100vh;
+  background: #fafafa;
   display: flex;
   flex-direction: column;
 }
@@ -223,7 +235,7 @@ const nextStep = () => {
 
 .upload-area {
   background: #fff;
-  border: 2px dashed #E5E7EB;
+  border: 2px dashed #e5e7eb;
   border-radius: 12px;
   min-height: 240px;
   display: flex;
@@ -235,18 +247,18 @@ const nextStep = () => {
 }
 
 .upload-area:active {
-  border-color: #9CA3AF;
+  border-color: #9ca3af;
 }
 
 .upload-text {
   font-size: 16px;
-  color: #1A1A1A;
+  color: #1a1a1a;
   margin-top: 16px;
 }
 
 .upload-hint {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-top: 8px;
 }
 
@@ -276,14 +288,14 @@ const nextStep = () => {
 .label {
   display: block;
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-bottom: 4px;
 }
 
 .value {
   font-size: 16px;
   font-weight: 500;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .warning-msg {
@@ -291,11 +303,11 @@ const nextStep = () => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #F59E0B;
+  color: #f59e0b;
   font-size: 14px;
   margin-top: 16px;
   padding: 12px;
-  background: #FEF3C7;
+  background: #fef3c7;
   border-radius: 8px;
 }
 
@@ -308,14 +320,14 @@ const nextStep = () => {
 
 .btn-primary {
   flex: 1;
-  background: #1A1A1A !important;
-  border-color: #1A1A1A !important;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
 }
 
 .btn-secondary {
   flex: 1;
   background: #fff !important;
-  border-color: #E5E7EB !important;
-  color: #1A1A1A !important;
+  border-color: #e5e7eb !important;
+  color: #1a1a1a !important;
 }
 </style>

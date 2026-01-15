@@ -264,8 +264,8 @@ async function init() {
   const cornerRadius = 0.15; // 圆角半径
   const smoothness = 8; // 圆角平滑度
   const geometry = new RoundedBoxGeometry(
-    4.5,
-    6.3,
+    3.6,
+    5.04,
     cardThickness,
     smoothness,
     cornerRadius
@@ -311,7 +311,7 @@ async function init() {
   scene.add(mesh);
 
   // 添加阴影平面增加深度感
-  const shadowGeometry = new THREE.PlaneGeometry(5.0, 7.0);
+  const shadowGeometry = new THREE.PlaneGeometry(4.0, 5.6);
   const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.2 });
   const shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
   shadowMesh.position.z = -0.15;

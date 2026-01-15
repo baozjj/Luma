@@ -9,8 +9,8 @@
         <div class="setting-group">
           <div class="setting-label">颜色</div>
           <div class="color-options">
-            <div 
-              v-for="color in colors" 
+            <div
+              v-for="color in colors"
               :key="color"
               class="color-item"
               :class="{ active: modelValue.color === color }"
@@ -22,8 +22,8 @@
         <div class="setting-group">
           <div class="setting-label">宽度</div>
           <div class="width-options">
-            <div 
-              v-for="w in widths" 
+            <div
+              v-for="w in widths"
               :key="w.value"
               class="width-item"
               :class="{ active: modelValue.width === w.value }"
@@ -43,25 +43,33 @@ const props = defineProps({
   visible: Boolean,
   modelValue: {
     type: Object,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const emit = defineEmits(['close', 'update:modelValue'])
+const emit = defineEmits(["close", "update:modelValue"]);
 
-const colors = ['#FFFFFF', '#1A1A1A', '#F3F4F6', '#FEE2E2', '#DBEAFE', '#D1FAE5', '#FEF3C7']
+const colors = [
+  "#FFFFFF",
+  "#1A1A1A",
+  "#F3F4F6",
+  "#FEE2E2",
+  "#DBEAFE",
+  "#D1FAE5",
+  "#FEF3C7",
+];
 const widths = [
-  { value: 'narrow', label: '窄' },
-  { value: 'medium', label: '中' },
-  { value: 'wide', label: '宽' }
-]
+  { value: "narrow", label: "窄" },
+  { value: "medium", label: "中" },
+  { value: "wide", label: "宽" },
+];
 
 function updateColor(color) {
-  emit('update:modelValue', { ...props.modelValue, color })
+  emit("update:modelValue", { ...props.modelValue, color });
 }
 
 function updateWidth(width) {
-  emit('update:modelValue', { ...props.modelValue, width })
+  emit("update:modelValue", { ...props.modelValue, width });
 }
 </script>
 
@@ -74,7 +82,7 @@ function updateWidth(width) {
   background: #fff;
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
-  max-height: 50vh;
+  max-height: 40vh;
   z-index: 998;
   display: flex;
   flex-direction: column;
@@ -85,32 +93,32 @@ function updateWidth(width) {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .panel-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .close-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: #6B7280;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .close-btn:active {
-  background: #E5E7EB;
+  background: #e5e7eb;
 }
 
 .panel-body {
@@ -130,7 +138,7 @@ function updateWidth(width) {
 .setting-label {
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
+  color: #6b7280;
   margin-bottom: 12px;
   display: block;
 }
@@ -152,7 +160,7 @@ function updateWidth(width) {
 }
 
 .color-item.active {
-  border-color: #1A1A1A;
+  border-color: #1a1a1a;
   transform: scale(1.1);
 }
 
@@ -167,15 +175,15 @@ function updateWidth(width) {
   border-radius: 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
-  background: #F3F4F6;
+  color: #6b7280;
+  background: #f3f4f6;
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
 }
 
 .width-item.active {
-  background: #1A1A1A;
+  background: #1a1a1a;
   color: #fff;
   transform: scale(1.05);
 }

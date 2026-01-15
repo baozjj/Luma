@@ -248,14 +248,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 20px;
+  padding-bottom: 120px;
   overflow: hidden;
 }
 
 .card-wrapper {
   position: relative;
-  width: min(85vw, 360px);
-  height: min(85vh, 504px);
-  max-height: calc(100vh - 140px);
+  width: min(80vw, 340px);
+  height: min(70vh, 480px);
+  max-height: calc(100vh - 240px);
 }
 
 .card-preview {

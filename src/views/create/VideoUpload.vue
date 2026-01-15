@@ -1,10 +1,6 @@
 <template>
   <div class="video-upload">
-    <van-nav-bar 
-      title="上传视频" 
-      left-arrow 
-      @click-left="goBack"
-    />
+    <van-nav-bar title="上传视频" left-arrow @click-left="goBack" />
 
     <div class="content">
       <div class="upload-area" @click="triggerUpload">
@@ -14,9 +10,9 @@
           <p class="upload-hint">支持 MP4、MOV，1-5秒，≤50MB</p>
         </template>
         <template v-else>
-          <video 
+          <video
             ref="videoRef"
-            :src="videoUrl" 
+            :src="videoUrl"
             class="video-preview"
             controls
             playsinline
@@ -24,9 +20,9 @@
         </template>
       </div>
 
-      <input 
+      <input
         ref="fileInput"
-        type="file" 
+        type="file"
         accept="video/mp4,video/quicktime"
         class="hidden"
         @change="handleFileChange"
@@ -50,17 +46,17 @@
     </div>
 
     <div class="footer">
-      <van-button 
+      <van-button
         v-if="videoUrl"
-        type="default" 
+        type="default"
         size="large"
         class="btn-secondary"
         @click="reupload"
       >
         重新上传
       </van-button>
-      <van-button 
-        type="primary" 
+      <van-button
+        type="primary"
         size="large"
         :disabled="!canProceed"
         class="btn-primary"
@@ -73,81 +69,88 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { NavBar as VanNavBar, Icon as VanIcon, Button as VanButton, showToast } from 'vant'
-import { useCardStore } from '@/stores/card'
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import {
+  NavBar as VanNavBar,
+  Icon as VanIcon,
+  Button as VanButton,
+  showToast,
+} from "vant";
+import { useCardStore } from "@/stores/card";
 
-const router = useRouter()
-const cardStore = useCardStore()
+const router = useRouter();
+const cardStore = useCardStore();
 
-const fileInput = ref(null)
-const videoRef = ref(null)
-const videoUrl = ref('')
-const duration = ref(0)
-const fileSize = ref(0)
-const error = ref('')
+const fileInput = ref(null);
+const videoRef = ref(null);
+const videoUrl = ref("");
+const duration = ref(0);
+const fileSize = ref(0);
+const error = ref("");
 
 const canProceed = computed(() => {
-  return videoUrl.value && duration.value >= 1 && duration.value <= 5 && !error.value
-})
+  return (
+    videoUrl.value && duration.value >= 1 && duration.value <= 5 && !error.value
+  );
+});
 
 function goBack() {
-  router.back()
+  router.back();
 }
 
 function triggerUpload() {
-  fileInput.value?.click()
+  fileInput.value?.click();
 }
 
 function handleFileChange(e) {
-  const file = e.target.files[0]
-  if (!file) return
+  const file = e.target.files[0];
+  if (!file) return;
 
-  error.value = ''
-  
-  const sizeMB = file.size / (1024 * 1024)
+  error.value = "";
+
+  const sizeMB = file.size / (1024 * 1024);
   if (sizeMB > 50) {
-    error.value = '视频大小不能超过50MB'
-    return
+    error.value = "视频大小不能超过50MB";
+    return;
   }
-  fileSize.value = sizeMB.toFixed(1)
+  fileSize.value = sizeMB.toFixed(1);
 
-  const url = URL.createObjectURL(file)
-  videoUrl.value = url
+  const url = URL.createObjectURL(file);
+  videoUrl.value = url;
 
-  const video = document.createElement('video')
-  video.src = url
+  const video = document.createElement("video");
+  video.src = url;
   video.onloadedmetadata = () => {
-    duration.value = Math.round(video.duration * 10) / 10
+    duration.value = Math.round(video.duration * 10) / 10;
     if (video.duration > 5) {
-      error.value = '视频时长超过5秒，请裁剪后上传'
+      error.value = "视频时长超过5秒，请裁剪后上传";
     } else if (video.duration < 1) {
-      error.value = '视频时长不足1秒'
+      error.value = "视频时长不足1秒";
     }
-  }
+  };
 
-  cardStore.setVideo(file)
+  cardStore.setVideo(file);
 }
 
 function reupload() {
-  videoUrl.value = ''
-  duration.value = 0
-  fileSize.value = 0
-  error.value = ''
-  fileInput.value.value = ''
+  videoUrl.value = "";
+  duration.value = 0;
+  fileSize.value = 0;
+  error.value = "";
+  fileInput.value.value = "";
 }
 
 function nextStep() {
-  if (!canProceed.value) return
-  router.push('/create/frames')
+  if (!canProceed.value) return;
+  router.push("/create/frames");
 }
 </script>
 
 <style scoped>
 .video-upload {
-  min-height: 100vh;
-  background: #FAFAFA;
+  max-height: 100vh;
+  background: #fafafa;
   display: flex;
   flex-direction: column;
 }
@@ -159,7 +162,7 @@ function nextStep() {
 
 .upload-area {
   background: #fff;
-  border: 2px dashed #E5E7EB;
+  border: 2px dashed #e5e7eb;
   border-radius: 12px;
   min-height: 240px;
   display: flex;
@@ -171,18 +174,18 @@ function nextStep() {
 }
 
 .upload-area:active {
-  border-color: #9CA3AF;
+  border-color: #9ca3af;
 }
 
 .upload-text {
   font-size: 16px;
-  color: #1A1A1A;
+  color: #1a1a1a;
   margin-top: 16px;
 }
 
 .upload-hint {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-top: 8px;
 }
 
@@ -210,14 +213,14 @@ function nextStep() {
 .label {
   display: block;
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-bottom: 4px;
 }
 
 .value {
   font-size: 16px;
   font-weight: 500;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .error-msg {
@@ -225,7 +228,7 @@ function nextStep() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #EF4444;
+  color: #ef4444;
   font-size: 14px;
   margin-top: 16px;
 }
@@ -239,14 +242,14 @@ function nextStep() {
 
 .btn-primary {
   flex: 1;
-  background: #1A1A1A !important;
-  border-color: #1A1A1A !important;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
 }
 
 .btn-secondary {
   flex: 1;
   background: #fff !important;
-  border-color: #E5E7EB !important;
-  color: #1A1A1A !important;
+  border-color: #e5e7eb !important;
+  color: #1a1a1a !important;
 }
 </style>

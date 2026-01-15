@@ -1,8 +1,8 @@
 <template>
   <div class="preview-3d">
-    <van-nav-bar 
-      title="3D预览" 
-      left-arrow 
+    <van-nav-bar
+      title="3D预览"
+      left-arrow
       @click-left="goBack"
       fixed
       placeholder
@@ -10,7 +10,7 @@
 
     <div class="content">
       <div class="preview-container">
-        <LenticularCard 
+        <LenticularCard
           :frames="frames"
           :stickers="stickers"
           :border-color="borderColor"
@@ -25,16 +25,16 @@
     </div>
 
     <div class="footer">
-      <van-button 
-        type="default" 
+      <van-button
+        type="default"
         size="large"
         class="btn-secondary"
         @click="goBack"
       >
         返回编辑
       </van-button>
-      <van-button 
-        type="primary" 
+      <van-button
+        type="primary"
         size="large"
         class="btn-primary"
         @click="saveWork"
@@ -54,72 +54,77 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { NavBar as VanNavBar, Icon as VanIcon, Button as VanButton, ActionSheet as VanActionSheet, showToast, showSuccessToast } from 'vant'
-import { useCardStore } from '@/stores/card'
-import LenticularCard from './components/LenticularCard.vue'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import {
+  NavBar as VanNavBar,
+  Icon as VanIcon,
+  Button as VanButton,
+  ActionSheet as VanActionSheet,
+  showToast,
+  showSuccessToast,
+} from "vant";
+import { useCardStore } from "@/stores/card";
+import LenticularCard from "./components/LenticularCard.vue";
 
-const router = useRouter()
-const cardStore = useCardStore()
+const router = useRouter();
+const cardStore = useCardStore();
 
-const frames = computed(() => cardStore.frames)
-const stickers = computed(() => cardStore.stickers)
-const borderColor = computed(() => cardStore.borderColor)
-const borderWidth = computed(() => cardStore.borderWidth)
+const frames = computed(() => cardStore.frames);
+const stickers = computed(() => cardStore.stickers);
+const borderColor = computed(() => cardStore.borderColor);
+const borderWidth = computed(() => cardStore.borderWidth);
 
 const borderWidthPx = computed(() => {
-  const map = { narrow: '8px', medium: '16px', wide: '24px' }
-  return map[borderWidth.value]
-})
+  const map = { narrow: "8px", medium: "16px", wide: "24px" };
+  return map[borderWidth.value];
+});
 
-const showExport = ref(false)
+const showExport = ref(false);
 
 const exportActions = [
-  { name: '保存至作品集', value: 'save' },
-  { name: '导出预览图', value: 'image' },
-  { name: '导出GIF动图', value: 'gif' }
-]
+  { name: "保存至作品集", value: "save" },
+  { name: "导出预览图", value: "image" },
+  { name: "导出GIF动图", value: "gif" },
+];
 
 function goBack() {
-  router.back()
+  router.back();
 }
 
-
 function saveWork() {
-  showExport.value = true
+  showExport.value = true;
 }
 
 function handleExport(action: any) {
-  showExport.value = false
-  
-  if (action.value === 'save') {
-    cardStore.saveWork()
-    showSuccessToast('已保存至作品集')
+  showExport.value = false;
+
+  if (action.value === "save") {
+    cardStore.saveWork();
+    showSuccessToast("已保存至作品集");
     setTimeout(() => {
-      cardStore.reset()
-      router.push('/works')
-    }, 1000)
-  } else if (action.value === 'image') {
-    showToast('正在生成预览图...')
-  } else if (action.value === 'gif') {
-    showToast('正在生成GIF...')
+      cardStore.reset();
+      router.push("/works");
+    }, 1000);
+  } else if (action.value === "image") {
+    showToast("正在生成预览图...");
+  } else if (action.value === "gif") {
+    showToast("正在生成GIF...");
   }
 }
 
 onMounted(() => {
   if (!cardStore.frames.length) {
-    showToast('请先完成制作流程')
-    router.push('/create')
+    showToast("请先完成制作流程");
+    router.push("/create");
   }
-})
-
+});
 </script>
 
 <style scoped>
 .preview-3d {
   height: 100vh;
-  background: #FFFFFF;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -127,7 +132,8 @@ onMounted(() => {
 
 .content {
   flex: 1;
-  padding: 24px 16px;
+  padding: 70px 16px;
+  padding-bottom: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -141,6 +147,7 @@ onMounted(() => {
   justify-content: center;
   width: 100%;
   max-width: 600px;
+  max-height: calc(100vh - 200px);
   perspective: 1000px;
 }
 
@@ -195,21 +202,21 @@ onMounted(() => {
 
 .indicator-bar {
   height: 4px;
-  background: #E5E7EB;
+  background: #e5e7eb;
   border-radius: 2px;
   overflow: hidden;
 }
 
 .indicator-progress {
   height: 100%;
-  background: #1A1A1A;
+  background: #1a1a1a;
   transition: width 0.1s;
 }
 
 .indicator-text {
   display: block;
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-top: 8px;
 }
 
@@ -218,7 +225,7 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-top: 16px;
 }
 
@@ -229,13 +236,13 @@ onMounted(() => {
 }
 
 .actions .van-button {
-  border-color: #E5E7EB;
-  color: #1A1A1A;
+  border-color: #e5e7eb;
+  color: #1a1a1a;
 }
 
 .actions .van-button.active {
-  border-color: #1A1A1A;
-  background: #1A1A1A;
+  border-color: #1a1a1a;
+  background: #1a1a1a;
   color: #fff;
 }
 
@@ -248,14 +255,14 @@ onMounted(() => {
 
 .btn-primary {
   flex: 1;
-  background: #1A1A1A !important;
-  border-color: #1A1A1A !important;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
 }
 
 .btn-secondary {
   flex: 1;
   background: #fff !important;
-  border-color: #E5E7EB !important;
-  color: #1A1A1A !important;
+  border-color: #e5e7eb !important;
+  color: #1a1a1a !important;
 }
 </style>

@@ -7,14 +7,10 @@
       </div>
       <div class="panel-body">
         <van-tabs v-model:active="activeCategory" shrink>
-          <van-tab 
-            v-for="cat in categories" 
-            :key="cat.key" 
-            :title="cat.name"
-          >
+          <van-tab v-for="cat in categories" :key="cat.key" :title="cat.name">
             <div class="sticker-grid">
-              <div 
-                v-for="icon in cat.icons" 
+              <div
+                v-for="icon in cat.icons"
                 :key="icon"
                 class="sticker-item"
                 draggable="true"
@@ -32,48 +28,128 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Tab as VanTab, Tabs as VanTabs } from 'vant'
+import { ref } from "vue";
+import { Tab as VanTab, Tabs as VanTabs } from "vant";
 
 defineProps({
-  visible: Boolean
-})
+  visible: Boolean,
+});
 
-const emit = defineEmits(['close', 'add-sticker', 'drag-start'])
+const emit = defineEmits(["close", "add-sticker", "drag-start"]);
 
-const activeCategory = ref(0)
+const activeCategory = ref(0);
 
 const categories = [
-  { 
-    key: 'emoji', 
-    name: '表情',
-    icons: ['😊', '😍', '🥰', '😎', '🤩', '😇', '🥳', '😋', '🤗', '💕', '❤️', '💖', '⭐', '✨', '🌟']
+  {
+    key: "emoji",
+    name: "表情",
+    icons: [
+      "😊",
+      "😍",
+      "🥰",
+      "😎",
+      "🤩",
+      "😇",
+      "🥳",
+      "😋",
+      "🤗",
+      "💕",
+      "❤️",
+      "💖",
+      "⭐",
+      "✨",
+      "🌟",
+    ],
   },
-  { 
-    key: 'symbol', 
-    name: '符号',
-    icons: ['🎵', '🎶', '⚡', '💫', '🔥', '💎', '🎯', '🎪', '🎨', '🎭', '🎬', '📸', '🎤', '🎧', '🎹']
+  {
+    key: "symbol",
+    name: "符号",
+    icons: [
+      "🎵",
+      "🎶",
+      "⚡",
+      "💫",
+      "🔥",
+      "💎",
+      "🎯",
+      "🎪",
+      "🎨",
+      "🎭",
+      "🎬",
+      "📸",
+      "🎤",
+      "🎧",
+      "🎹",
+    ],
   },
-  { 
-    key: 'holiday', 
-    name: '节日',
-    icons: ['🎄', '🎅', '🎁', '🎊', '🎉', '🎂', '🎈', '🧧', '🏮', '🎃', '👻', '🐰', '🥚', '💝', '🌹']
+  {
+    key: "holiday",
+    name: "节日",
+    icons: [
+      "🎄",
+      "🎅",
+      "🎁",
+      "🎊",
+      "🎉",
+      "🎂",
+      "🎈",
+      "🧧",
+      "🏮",
+      "🎃",
+      "👻",
+      "🐰",
+      "🥚",
+      "💝",
+      "🌹",
+    ],
   },
-  { 
-    key: 'nature', 
-    name: '自然',
-    icons: ['🌸', '🌺', '🌻', '🌷', '🌹', '🍀', '🌿', '🍃', '☁️', '🌈', '🌙', '⭐', '🦋', '🐝', '🌊']
+  {
+    key: "nature",
+    name: "自然",
+    icons: [
+      "🌸",
+      "🌺",
+      "🌻",
+      "🌷",
+      "🌹",
+      "🍀",
+      "🌿",
+      "🍃",
+      "☁️",
+      "🌈",
+      "🌙",
+      "⭐",
+      "🦋",
+      "🐝",
+      "🌊",
+    ],
   },
-  { 
-    key: 'shape', 
-    name: '几何',
-    icons: ['⬤', '◆', '▲', '■', '●', '◇', '△', '□', '○', '◈', '✦', '✧', '❖', '◉', '◎']
-  }
-]
+  {
+    key: "shape",
+    name: "几何",
+    icons: [
+      "⬤",
+      "◆",
+      "▲",
+      "■",
+      "●",
+      "◇",
+      "△",
+      "□",
+      "○",
+      "◈",
+      "✦",
+      "✧",
+      "❖",
+      "◉",
+      "◎",
+    ],
+  },
+];
 
 function handleDragStart(e, icon) {
-  emit('drag-start', icon)
-  e.dataTransfer.effectAllowed = 'copy'
+  emit("drag-start", icon);
+  e.dataTransfer.effectAllowed = "copy";
 }
 </script>
 
@@ -86,7 +162,7 @@ function handleDragStart(e, icon) {
   background: #fff;
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
-  max-height: 50vh;
+  max-height: 45vh;
   z-index: 998;
   display: flex;
   flex-direction: column;
@@ -97,32 +173,32 @@ function handleDragStart(e, icon) {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .panel-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .close-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: #6B7280;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .close-btn:active {
-  background: #E5E7EB;
+  background: #e5e7eb;
 }
 
 .panel-body {
@@ -144,14 +220,14 @@ function handleDragStart(e, icon) {
   align-items: center;
   justify-content: center;
   font-size: 32px;
-  background: #F9FAFB;
+  background: #f9fafb;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .sticker-item:active {
-  background: #E5E7EB;
+  background: #e5e7eb;
   transform: scale(0.95);
 }
 
