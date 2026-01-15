@@ -4,76 +4,23 @@
       title="3D预览" 
       left-arrow 
       @click-left="goBack"
+      fixed
+      placeholder
     />
 
     <div class="content">
       <div class="preview-container">
-        <div 
-          class="card-3d"
-          :style="cardStyle"
-          @touchstart="handleTouchStart"
-          @touchmove="handleTouchMove"
-          @touchend="handleTouchEnd"
-          @mousedown="handleMouseDown"
-        >
-          <div 
-            class="card-face"
-            :style="{ 
-              borderColor: borderColor,
-              borderWidth: borderWidthPx
-            }"
-          >
-            <div class="card-inner">
-              <img 
-                :src="currentFrame" 
-                alt=""
-                class="card-image"
-              />
-            </div>
-            
-            <div 
-              v-for="sticker in stickers" 
-              :key="sticker.id"
-              class="sticker"
-              :style="getStickerStyle(sticker)"
-            >
-              {{ sticker.icon }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="frame-indicator">
-        <div class="indicator-bar">
-          <div 
-            class="indicator-progress" 
-            :style="{ width: `${(currentFrameIndex + 1) / frames.length * 100}%` }"
-          />
-        </div>
-        <span class="indicator-text">{{ currentFrameIndex + 1 }} / {{ frames.length }}</span>
+        <LenticularCard 
+          :frames="frames"
+          :stickers="stickers"
+          :border-color="borderColor"
+          :border-width="borderWidth"
+        />
       </div>
 
       <div class="hint">
         <van-icon name="info-o" />
-        <span>左右滑动卡片查看光栅效果</span>
-      </div>
-
-      <div class="actions">
-        <van-button 
-          size="small" 
-          plain
-          :class="{ active: isAutoPlay }"
-          @click="toggleAutoPlay"
-        >
-          {{ isAutoPlay ? '停止播放' : '自动播放' }}
-        </van-button>
-        <van-button 
-          size="small" 
-          plain
-          @click="toggleView"
-        >
-          {{ is3D ? '2D视图' : '3D视图' }}
-        </van-button>
+        <span>移动鼠标或倾斜设备查看光栅卡效果</span>
       </div>
     </div>
 
@@ -106,11 +53,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NavBar as VanNavBar, Icon as VanIcon, Button as VanButton, ActionSheet as VanActionSheet, showToast, showSuccessToast } from 'vant'
 import { useCardStore } from '@/stores/card'
+import LenticularCard from './components/LenticularCard.vue'
 
 const router = useRouter()
 const cardStore = useCardStore()
@@ -125,26 +73,7 @@ const borderWidthPx = computed(() => {
   return map[borderWidth.value]
 })
 
-const currentFrameIndex = ref(0)
-const rotateY = ref(0)
-const is3D = ref(true)
-const isAutoPlay = ref(false)
 const showExport = ref(false)
-
-let autoPlayTimer = null
-let startX = 0
-let lastX = 0
-
-const currentFrame = computed(() => frames.value[currentFrameIndex.value])
-
-const cardStyle = computed(() => {
-  if (!is3D.value) {
-    return { transform: 'perspective(1000px) rotateY(0deg)' }
-  }
-  return {
-    transform: `perspective(1000px) rotateY(${rotateY.value}deg)`
-  }
-})
 
 const exportActions = [
   { name: '保存至作品集', value: 'save' },
@@ -156,95 +85,12 @@ function goBack() {
   router.back()
 }
 
-function getStickerStyle(sticker) {
-  return {
-    left: `${sticker.x}%`,
-    top: `${sticker.y}%`,
-    transform: `translate(-50%, -50%) scale(${sticker.scale}) rotate(${sticker.rotation}deg)`
-  }
-}
-
-function updateFrameByRotation() {
-  const normalizedRotation = ((rotateY.value % 360) + 360) % 360
-  const frameIndex = Math.floor((normalizedRotation / 360) * frames.value.length) % frames.value.length
-  currentFrameIndex.value = frameIndex
-}
-
-function handleTouchStart(e) {
-  startX = e.touches[0].clientX
-  lastX = startX
-  stopAutoPlay()
-}
-
-function handleTouchMove(e) {
-  const currentX = e.touches[0].clientX
-  const deltaX = currentX - lastX
-  rotateY.value += deltaX * 0.5
-  lastX = currentX
-  updateFrameByRotation()
-}
-
-function handleTouchEnd() {
-  // Animation end
-}
-
-function handleMouseDown(e) {
-  startX = e.clientX
-  lastX = startX
-  stopAutoPlay()
-  
-  const moveHandler = (moveE) => {
-    const deltaX = moveE.clientX - lastX
-    rotateY.value += deltaX * 0.5
-    lastX = moveE.clientX
-    updateFrameByRotation()
-  }
-  
-  const upHandler = () => {
-    document.removeEventListener('mousemove', moveHandler)
-    document.removeEventListener('mouseup', upHandler)
-  }
-  
-  document.addEventListener('mousemove', moveHandler)
-  document.addEventListener('mouseup', upHandler)
-}
-
-function toggleAutoPlay() {
-  if (isAutoPlay.value) {
-    stopAutoPlay()
-  } else {
-    startAutoPlay()
-  }
-}
-
-function startAutoPlay() {
-  isAutoPlay.value = true
-  autoPlayTimer = setInterval(() => {
-    rotateY.value += 2
-    updateFrameByRotation()
-  }, 50)
-}
-
-function stopAutoPlay() {
-  isAutoPlay.value = false
-  if (autoPlayTimer) {
-    clearInterval(autoPlayTimer)
-    autoPlayTimer = null
-  }
-}
-
-function toggleView() {
-  is3D.value = !is3D.value
-  if (!is3D.value) {
-    rotateY.value = 0
-  }
-}
 
 function saveWork() {
   showExport.value = true
 }
 
-function handleExport(action) {
+function handleExport(action: any) {
   showExport.value = false
   
   if (action.value === 'save') {
@@ -256,10 +102,8 @@ function handleExport(action) {
     }, 1000)
   } else if (action.value === 'image') {
     showToast('正在生成预览图...')
-    // TODO: 实现导出图片功能
   } else if (action.value === 'gif') {
     showToast('正在生成GIF...')
-    // TODO: 实现导出GIF功能
   }
 }
 
@@ -270,17 +114,15 @@ onMounted(() => {
   }
 })
 
-onUnmounted(() => {
-  stopAutoPlay()
-})
 </script>
 
 <style scoped>
 .preview-3d {
-  min-height: 100vh;
-  background: #FAFAFA;
+  height: 100vh;
+  background: #FFFFFF;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .content {
@@ -289,6 +131,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: hidden;
 }
 
 .preview-container {
@@ -297,6 +140,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   width: 100%;
+  max-width: 600px;
   perspective: 1000px;
 }
 

@@ -46,7 +46,7 @@ const routes = [
   {
     path: '/create/preview',
     name: 'Preview',
-    component: () => import('@/views/create/Preview3D.vue'),
+    component: () => import('@/views/create/Preview3D/index.vue'),
     meta: { title: '3D预览' }
   }
 ]
