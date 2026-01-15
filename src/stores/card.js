@@ -7,7 +7,7 @@ export const useCardStore = defineStore('card', () => {
   const frames = ref([])
   const stickers = ref([])
   const borderColor = ref('#FFFFFF')
-  const borderWidth = ref('medium')
+  const borderWidth = ref('wide')
   
   const works = ref([])
 
@@ -66,7 +66,7 @@ export const useCardStore = defineStore('card', () => {
     frames.value = []
     stickers.value = []
     borderColor.value = '#FFFFFF'
-    borderWidth.value = 'medium'
+    borderWidth.value = 'wide'
   }
 
   return {

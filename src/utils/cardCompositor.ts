@@ -19,6 +19,11 @@ export interface CardCompositeOptions {
   height?: number
 }
 
+// 贴纸位置微调配置（如果预览时位置不准确，可以调整这些值）
+const STICKER_OFFSET_X = 0  // X轴偏移百分比
+const STICKER_OFFSET_Y = 0  // Y轴偏移百分比
+const STICKER_SIZE_RATIO = 0.11  // 贴纸大小相对于卡片宽度的比例
+
 export async function createCompositeCardTexture(options: CardCompositeOptions): Promise<HTMLCanvasElement> {
   const {
     frameImage,
@@ -39,10 +44,12 @@ export async function createCompositeCardTexture(options: CardCompositeOptions):
   }
 
   // 边框宽度映射（像素）
+  // 基于编辑界面的固定像素值，按比例缩放到当前 canvas 宽度
+  // 编辑界面卡片宽度为 360px
   const borderWidthMap = {
-    narrow: width * 0.02,
-    medium: width * 0.04,
-    wide: width * 0.06
+    narrow: width * (16 / 360),  // 16px / 360px = 4.44%
+    medium: width * (24 / 360),  // 24px / 360px = 6.67%
+    wide: width * (48 / 360)     // 48px / 360px = 13.33%
   }
   const borderPx = borderWidthMap[borderWidth]
 
@@ -68,20 +75,27 @@ export async function createCompositeCardTexture(options: CardCompositeOptions):
   
   ctx.drawImage(img, contentX, contentY, contentWidth, contentHeight)
 
-  // 4. 绘制贴纸
+  // 4. 设置裁剪区域为整个卡片（包括边框），超出部分不显示
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(0, 0, width, height)
+  ctx.clip()
+
+  // 5. 绘制贴纸
   for (const sticker of stickers) {
     ctx.save()
     
-    // 计算贴纸位置（相对于内容区域）
-    const stickerX = contentX + (sticker.x / 100) * contentWidth
-    const stickerY = contentY + (sticker.y / 100) * contentHeight
+    // 计算贴纸位置（相对于整个卡片，包括边框）
+    // 注意：编辑界面使用 translate(-50%, -50%) 来居中，这里通过 textAlign 和 textBaseline 实现相同效果
+    const stickerX = ((sticker.x + STICKER_OFFSET_X) / 100) * width
+    const stickerY = ((sticker.y + STICKER_OFFSET_Y) / 100) * height
     
     ctx.translate(stickerX, stickerY)
     ctx.rotate((sticker.rotation * Math.PI) / 180)
     ctx.scale(sticker.scale, sticker.scale)
     
     // 绘制贴纸文字（emoji）
-    const fontSize = Math.floor(contentWidth * 0.08)
+    const fontSize = Math.floor(width * STICKER_SIZE_RATIO)
     ctx.font = `${fontSize}px Arial`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -96,6 +110,9 @@ export async function createCompositeCardTexture(options: CardCompositeOptions):
     
     ctx.restore()
   }
+
+  // 恢复裁剪前的状态
+  ctx.restore()
 
   return canvas
 }

@@ -3,24 +3,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
-import * as THREE from 'three'
-import { createCompositeCardTexture } from '@/utils/cardCompositor'
+import { ref, onMounted, onUnmounted, watch } from "vue";
+import * as THREE from "three";
+import { createCompositeCardTexture } from "@/utils/cardCompositor";
 
 const props = defineProps<{
-  frames: string[]
-  stickers?: any[]
-  borderColor?: string
-  borderWidth?: string
-}>()
+  frames: string[];
+  stickers?: any[];
+  borderColor?: string;
+  borderWidth?: string;
+}>();
 
-const containerRef = ref<HTMLDivElement | null>(null)
-let scene: THREE.Scene
-let camera: THREE.PerspectiveCamera
-let renderer: THREE.WebGLRenderer
-let mesh: THREE.Mesh
-let animationId: number
-let mouse = { x: 0, y: 0 }
+const containerRef = ref<HTMLDivElement | null>(null);
+let scene: THREE.Scene;
+let camera: THREE.PerspectiveCamera;
+let renderer: THREE.WebGLRenderer;
+let mesh: THREE.Mesh;
+let animationId: number;
+let mouse = { x: 0, y: 0 };
 
 const vertexShader = `
   varying vec2 vUv;
@@ -41,7 +41,7 @@ const vertexShader = `
 
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
   }
-`
+`;
 
 const fragmentShader = `
   uniform sampler2D uTexture0;
@@ -112,63 +112,69 @@ const fragmentShader = `
     gl_FragColor = vec4(albedo + specular + fresnel, 1.0);
     gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/2.2));
   }
-`
+`;
 
-async function createFrameTexture(imageSrc: string, index: number): Promise<THREE.Texture> {
+async function createFrameTexture(
+  imageSrc: string,
+  index: number
+): Promise<THREE.Texture> {
   const canvas = await createCompositeCardTexture({
     frameImage: imageSrc,
     stickers: props.stickers || [],
-    borderColor: props.borderColor || '#FFFFFF',
-    borderWidth: (props.borderWidth as 'narrow' | 'medium' | 'wide') || 'medium'
-  })
-  
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.anisotropy = 16
-  return texture
+    borderColor: props.borderColor || "#FFFFFF",
+    borderWidth: (props.borderWidth as "narrow" | "medium" | "wide") || "wide",
+  });
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 16;
+  return texture;
 }
 
 async function init() {
-  if (!containerRef.value) return
+  if (!containerRef.value) return;
 
-  scene = new THREE.Scene()
-  scene.background = new THREE.Color(0xFFFFFF)
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
 
   camera = new THREE.PerspectiveCamera(
     35,
     containerRef.value.clientWidth / containerRef.value.clientHeight,
     0.1,
     1000
-  )
-  camera.position.set(0, 0, 11)
+  );
+  camera.position.set(0, 0, 11);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setSize(containerRef.value.clientWidth, containerRef.value.clientHeight)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  containerRef.value.appendChild(renderer.domElement)
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(
+    containerRef.value.clientWidth,
+    containerRef.value.clientHeight
+  );
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  containerRef.value.appendChild(renderer.domElement);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
-  scene.add(ambientLight)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+  scene.add(ambientLight);
 
-  const keyLight = new THREE.DirectionalLight(0xffffff, 2.0)
-  keyLight.position.set(5, 5, 10)
-  scene.add(keyLight)
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+  keyLight.position.set(5, 5, 10);
+  scene.add(keyLight);
 
-  const rimLight = new THREE.DirectionalLight(0xa0d0ff, 1.0)
-  rimLight.position.set(-10, 5, -5)
-  scene.add(rimLight)
+  const rimLight = new THREE.DirectionalLight(0xa0d0ff, 1.0);
+  rimLight.position.set(-10, 5, -5);
+  scene.add(rimLight);
 
-  const fillLight = new THREE.DirectionalLight(0xffd0a0, 0.5)
-  fillLight.position.set(0, -5, 5)
-  scene.add(fillLight)
+  const fillLight = new THREE.DirectionalLight(0xffd0a0, 0.5);
+  fillLight.position.set(0, -5, 5);
+  scene.add(fillLight);
 
   const textures = await Promise.all([
-    createFrameTexture(props.frames[0] || '', 0),
-    createFrameTexture(props.frames[1] || props.frames[0] || '', 1),
-    createFrameTexture(props.frames[2] || props.frames[0] || '', 2)
-  ])
+    createFrameTexture(props.frames[0] || "", 0),
+    createFrameTexture(props.frames[1] || props.frames[0] || "", 1),
+    createFrameTexture(props.frames[2] || props.frames[0] || "", 2),
+  ]);
 
-  const geometry = new THREE.PlaneGeometry(4.5, 6, 128, 128)
+  const geometry = new THREE.PlaneGeometry(4.5, 6.3, 128, 128);
   const material = new THREE.ShaderMaterial({
     vertexShader,
     fragmentShader,
@@ -181,104 +187,108 @@ async function init() {
       uPitch: { value: 0.5 },
       uFocus: { value: 8.0 },
       uGlossiness: { value: 80.0 },
-      uSpecularInt: { value: 1.0 }
+      uSpecularInt: { value: 1.0 },
     },
-    side: THREE.DoubleSide
-  })
+    side: THREE.DoubleSide,
+  });
 
-  mesh = new THREE.Mesh(geometry, material)
-  scene.add(mesh)
+  mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
 
   // Add shadow plane behind card for depth
-  const shadowGeometry = new THREE.PlaneGeometry(4.8, 6.3)
-  const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.3 })
-  const shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial)
-  shadowMesh.position.z = -0.1
-  shadowMesh.receiveShadow = true
-  scene.add(shadowMesh)
-  
+  const shadowGeometry = new THREE.PlaneGeometry(4.8, 6.3);
+  const shadowMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+  const shadowMesh = new THREE.Mesh(shadowGeometry, shadowMaterial);
+  shadowMesh.position.z = -0.1;
+  shadowMesh.receiveShadow = true;
+  scene.add(shadowMesh);
+
   // Enable shadows on the card
-  mesh.castShadow = true
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
+  mesh.castShadow = true;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   if (containerRef.value) {
-    containerRef.value.addEventListener('mousemove', handleMouseMove)
-    containerRef.value.addEventListener('touchmove', handleTouchMove)
+    containerRef.value.addEventListener("mousemove", handleMouseMove);
+    containerRef.value.addEventListener("touchmove", handleTouchMove);
   }
-  window.addEventListener('deviceorientation', handleOrientation)
-  window.addEventListener('resize', handleResize)
+  window.addEventListener("deviceorientation", handleOrientation);
+  window.addEventListener("resize", handleResize);
 
-  animate()
+  animate();
 }
 
 function handleMouseMove(e: MouseEvent) {
-  if (!containerRef.value) return
-  const rect = containerRef.value.getBoundingClientRect()
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+  if (!containerRef.value) return;
+  const rect = containerRef.value.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 }
 
 function handleTouchMove(e: TouchEvent) {
-  if (!containerRef.value || !e.touches[0]) return
-  const rect = containerRef.value.getBoundingClientRect()
-  mouse.x = ((e.touches[0].clientX - rect.left) / rect.width) * 2 - 1
-  mouse.y = -((e.touches[0].clientY - rect.top) / rect.height) * 2 + 1
+  if (!containerRef.value || !e.touches[0]) return;
+  const rect = containerRef.value.getBoundingClientRect();
+  mouse.x = ((e.touches[0].clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.touches[0].clientY - rect.top) / rect.height) * 2 + 1;
 }
 
 function handleOrientation(e: DeviceOrientationEvent) {
   if (e.gamma != null && e.beta != null) {
-    mouse.x = THREE.MathUtils.clamp(e.gamma / 30, -1, 1)
-    mouse.y = THREE.MathUtils.clamp((e.beta - 45) / 30, -1, 1)
+    mouse.x = THREE.MathUtils.clamp(e.gamma / 30, -1, 1);
+    mouse.y = THREE.MathUtils.clamp((e.beta - 45) / 30, -1, 1);
   }
 }
 
 function handleResize() {
-  if (!containerRef.value) return
-  
-  camera.aspect = containerRef.value.clientWidth / containerRef.value.clientHeight
-  camera.updateProjectionMatrix()
-  renderer.setSize(containerRef.value.clientWidth, containerRef.value.clientHeight)
+  if (!containerRef.value) return;
+
+  camera.aspect =
+    containerRef.value.clientWidth / containerRef.value.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(
+    containerRef.value.clientWidth,
+    containerRef.value.clientHeight
+  );
 }
 
 function animate() {
-  animationId = requestAnimationFrame(animate)
+  animationId = requestAnimationFrame(animate);
 
   if (mesh) {
-    const maxRotX = 0.3
-    const maxRotY = 0.5
-    const targetRotY = THREE.MathUtils.clamp(mouse.x * 0.5, -maxRotY, maxRotY)
-    const targetRotX = THREE.MathUtils.clamp(-mouse.y * 0.3, -maxRotX, maxRotX)
+    const maxRotX = 0.3;
+    const maxRotY = 0.5;
+    const targetRotY = THREE.MathUtils.clamp(mouse.x * 0.5, -maxRotY, maxRotY);
+    const targetRotX = THREE.MathUtils.clamp(-mouse.y * 0.3, -maxRotX, maxRotX);
 
-    mesh.rotation.x += (targetRotX - mesh.rotation.x) * 0.1
-    mesh.rotation.y += (targetRotY - mesh.rotation.y) * 0.1
-    mesh.position.y = Math.sin(Date.now() * 0.0008) * 0.05
+    mesh.rotation.x += (targetRotX - mesh.rotation.x) * 0.1;
+    mesh.rotation.y += (targetRotY - mesh.rotation.y) * 0.1;
+    mesh.position.y = Math.sin(Date.now() * 0.0008) * 0.05;
   }
 
-  renderer.render(scene, camera)
+  renderer.render(scene, camera);
 }
 
 function cleanup() {
   if (animationId) {
-    cancelAnimationFrame(animationId)
+    cancelAnimationFrame(animationId);
   }
-  
+
   if (containerRef.value) {
-    containerRef.value.removeEventListener('mousemove', handleMouseMove)
-    containerRef.value.removeEventListener('touchmove', handleTouchMove)
+    containerRef.value.removeEventListener("mousemove", handleMouseMove);
+    containerRef.value.removeEventListener("touchmove", handleTouchMove);
   }
-  window.removeEventListener('deviceorientation', handleOrientation)
-  window.removeEventListener('resize', handleResize)
+  window.removeEventListener("deviceorientation", handleOrientation);
+  window.removeEventListener("resize", handleResize);
 
   if (renderer && containerRef.value) {
-    containerRef.value.removeChild(renderer.domElement)
-    renderer.dispose()
+    containerRef.value.removeChild(renderer.domElement);
+    renderer.dispose();
   }
 
   if (mesh) {
-    mesh.geometry.dispose()
+    mesh.geometry.dispose();
     if (mesh.material instanceof THREE.Material) {
-      mesh.material.dispose()
+      mesh.material.dispose();
     }
   }
 }
@@ -286,29 +296,29 @@ function cleanup() {
 async function updateTextures() {
   if (mesh && mesh.material instanceof THREE.ShaderMaterial) {
     const textures = await Promise.all([
-      createFrameTexture(props.frames[0] || '', 0),
-      createFrameTexture(props.frames[1] || props.frames[0] || '', 1),
-      createFrameTexture(props.frames[2] || props.frames[0] || '', 2)
-    ])
-    
-    mesh.material.uniforms.uTexture0.value = textures[0]
-    mesh.material.uniforms.uTexture1.value = textures[1]
-    mesh.material.uniforms.uTexture2.value = textures[2]
+      createFrameTexture(props.frames[0] || "", 0),
+      createFrameTexture(props.frames[1] || props.frames[0] || "", 1),
+      createFrameTexture(props.frames[2] || props.frames[0] || "", 2),
+    ]);
+
+    mesh.material.uniforms.uTexture0.value = textures[0];
+    mesh.material.uniforms.uTexture1.value = textures[1];
+    mesh.material.uniforms.uTexture2.value = textures[2];
   }
 }
 
-watch(() => props.frames, updateTextures, { deep: true })
-watch(() => props.stickers, updateTextures, { deep: true })
-watch(() => props.borderColor, updateTextures)
-watch(() => props.borderWidth, updateTextures)
+watch(() => props.frames, updateTextures, { deep: true });
+watch(() => props.stickers, updateTextures, { deep: true });
+watch(() => props.borderColor, updateTextures);
+watch(() => props.borderWidth, updateTextures);
 
 onMounted(() => {
-  init()
-})
+  init();
+});
 
 onUnmounted(() => {
-  cleanup()
-})
+  cleanup();
+});
 </script>
 
 <style scoped>
