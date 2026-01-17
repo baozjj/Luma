@@ -29,14 +29,8 @@ const routes = [
   {
     path: '/create',
     name: 'Create',
-    component: () => import('@/views/Create/VideoUpload/index.vue'),
-    meta: { title: '上传视频' }
-  },
-  {
-    path: '/create/frames',
-    name: 'Frames',
-    component: () => import('@/views/Create/FrameEdit/index.vue'),
-    meta: { title: '抽帧预览' }
+    component: () => import('@/views/create/VideoUpload/index.vue'),
+    meta: { title: '上传图片' }
   },
   {
     path: '/create/decorate',

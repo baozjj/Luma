@@ -5,6 +5,7 @@ export const useCardStore = defineStore('card', () => {
   const videoFile = ref(null)
   const videoUrl = ref('')
   const frames = ref([])
+  const frameRate = ref(8)
   const stickers = ref([])
   const borderColor = ref('#FFFFFF')
   const borderWidth = ref('wide')
@@ -18,6 +19,10 @@ export const useCardStore = defineStore('card', () => {
 
   function setFrames(frameList) {
     frames.value = frameList
+  }
+
+  function setFrameRate(rate) {
+    frameRate.value = rate
   }
 
   function addSticker(sticker) {
@@ -64,6 +69,7 @@ export const useCardStore = defineStore('card', () => {
     videoFile.value = null
     videoUrl.value = ''
     frames.value = []
+    frameRate.value = 8
     stickers.value = []
     borderColor.value = '#FFFFFF'
     borderWidth.value = 'wide'
@@ -73,12 +79,14 @@ export const useCardStore = defineStore('card', () => {
     videoFile,
     videoUrl,
     frames,
+    frameRate,
     stickers,
     borderColor,
     borderWidth,
     works,
     setVideo,
     setFrames,
+    setFrameRate,
     addSticker,
     updateSticker,
     removeSticker,

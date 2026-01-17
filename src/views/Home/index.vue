@@ -11,23 +11,18 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import HeroSection from './components/HeroSection/index.vue'
-import StepsSection from './components/StepsSection/index.vue'
-import GallerySection from './components/GallerySection/index.vue'
+import { useRouter } from "vue-router";
+import HeroSection from "./components/HeroSection/index.vue";
+import StepsSection from "./components/StepsSection/index.vue";
+import GallerySection from "./components/GallerySection/index.vue";
 
-const router = useRouter()
+const router = useRouter();
 
-const steps = [
-  '上传视频',
-  '抽帧预览',
-  '装饰边框',
-  '3D预览'
-]
+const steps = ["选择帧率", "上传图片", "装饰边框", "3D预览"];
 
 const handleCreate = () => {
-  router.push('/create')
-}
+  router.push("/create");
+};
 </script>
 
 <style scoped>
@@ -42,6 +37,6 @@ const handleCreate = () => {
 .logo {
   font-size: 24px;
   font-weight: 600;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 </style>

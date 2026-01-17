@@ -1,78 +1,70 @@
 <template>
   <div class="video-upload">
-    <!-- 裁剪模式 -->
-    <van-popup
-      v-model:show="showCropper"
-      position="bottom"
-      :style="{ height: '100%' }"
-      :close-on-click-overlay="false"
-    >
-      <VideoCropper
-        v-if="showCropper"
-        :video-url="videoUrl"
-        @confirm="handleCropConfirm"
-        @cancel="handleCropCancel"
-      />
-    </van-popup>
-
-    <!-- 上传模式 -->
-    <van-nav-bar title="上传视频" left-arrow @click-left="goBack" />
+    <van-nav-bar title="上传图片" left-arrow @click-left="goBack" />
 
     <div class="content">
+      <div class="frame-rate">
+        <p class="section-title">选择帧率</p>
+        <div class="rate-options">
+          <van-button
+            v-for="rate in frameRates"
+            :key="rate"
+            size="small"
+            :type="selectedRate === rate ? 'primary' : 'default'"
+            class="rate-btn"
+            @click="selectRate(rate)"
+          >
+            {{ rate }} 帧
+          </van-button>
+        </div>
+        <p class="rate-hint">请选择 6/8/10/12 帧，决定需要上传的图片数量</p>
+      </div>
+
       <div class="upload-area" @click="triggerUpload">
-        <template v-if="!videoUrl">
-          <van-icon name="video-o" size="48" color="#9CA3AF" />
-          <p class="upload-text">点击上传视频</p>
-          <p class="upload-hint">支持 MP4、MOV，≤50MB</p>
+        <template v-if="!images.length">
+          <van-icon name="photo-o" size="48" color="#9CA3AF" />
+          <p class="upload-text">点击上传图片</p>
+          <p class="upload-hint">需上传 {{ requiredCount }} 张（JPG/PNG）</p>
         </template>
         <template v-else>
-          <video
-            ref="videoRef"
-            :src="croppedVideoUrl || videoUrl"
-            class="video-preview"
-            controls
-            playsinline
-          />
+          <div class="thumb-grid">
+            <div v-for="(img, index) in images" :key="index" class="thumb">
+              <img :src="img" alt="" />
+              <span class="thumb-num">{{ index + 1 }}</span>
+            </div>
+          </div>
         </template>
       </div>
 
       <input
         ref="fileInput"
         type="file"
-        accept="video/mp4,video/quicktime"
+        accept="image/jpeg,image/png"
+        multiple
         class="hidden"
         @change="handleFileChange"
       />
 
-      <div v-if="videoUrl" class="video-info">
+      <div v-if="images.length" class="video-info">
         <div class="info-item">
-          <span class="label">时长</span>
-          <span class="value">{{ displayDuration }}秒</span>
+          <span class="label">已上传</span>
+          <span class="value">{{ images.length }} 张</span>
         </div>
         <div class="info-item">
-          <span class="label">大小</span>
-          <span class="value">{{ fileSize }}MB</span>
+          <span class="label">目标数量</span>
+          <span class="value">{{ requiredCount }} 张</span>
         </div>
-        <van-button
-          v-if="needsCrop"
-          size="small"
-          type="primary"
-          plain
-          @click="openCropper"
-        >
-          裁剪视频
-        </van-button>
       </div>
 
-      <div v-if="needsCrop && !isCropped" class="warning-msg">
+      <div v-if="error" class="warning-msg">
         <van-icon name="info-o" />
-        视频时长超过5秒，请裁剪后继续
+        {{ error }}
       </div>
     </div>
 
     <div class="footer">
       <van-button
-        v-if="videoUrl"
+        v-if="images.length"
         type="default"
         size="large"
         class="btn-secondary"
@@ -100,115 +92,65 @@ import {
   NavBar as VanNavBar,
   Icon as VanIcon,
   Button as VanButton,
-  Popup as VanPopup,
-  showToast,
 } from "vant";
 import { useCardStore } from "@/stores/card";
-import VideoCropper from "./components/VideoCropper/index.vue";
 
 const router = useRouter();
 const cardStore = useCardStore();
 
+const frameRates = [6, 8, 10, 12];
+const selectedRate = ref<number>(cardStore.frameRate || 8);
 const fileInput = ref<HTMLInputElement | null>(null);
-const videoRef = ref<HTMLVideoElement | null>(null);
-const videoUrl = ref("");
-const croppedVideoUrl = ref("");
-const duration = ref(0);
-const croppedDuration = ref(0);
-const fileSize = ref(0);
+const images = ref<string[]>(cardStore.frames || []);
 const error = ref("");
-const showCropper = ref(false);
-const isCropped = ref(false);
 
-const needsCrop = computed(() => duration.value > 5);
-const displayDuration = computed(() =>
-  isCropped.value ? croppedDuration.value : duration.value
-);
+const requiredCount = computed(() => selectedRate.value || 0);
 
 const canProceed = computed(() => {
-  if (!videoUrl.value) return false;
-  if (needsCrop.value && !isCropped.value) return false;
-  const d = displayDuration.value;
-  return d >= 1 && d <= 5 && !error.value;
+  if (!selectedRate.value) return false;
+  if (images.value.length !== requiredCount.value) return false;
+  return !error.value;
 });
 
 const goBack = () => {
   router.back();
 };
 
-const triggerUpload = () => {
-  fileInput.value?.click();
+const selectRate = (rate: number) => {
+  selectedRate.value = rate;
+  if (images.value.length && images.value.length !== rate) {
+    error.value = `当前已上传 ${images.value.length} 张，请重新上传 ${rate} 张`;
+  } else {
+    error.value = "";
+  }
 };
 
-const openCropper = () => {
-  showCropper.value = true;
+const triggerUpload = () => {
+  if (!selectedRate.value) {
+    error.value = "请先选择帧率";
+    return;
+  }
+  fileInput.value?.click();
 };
 
 const handleFileChange = (e: Event) => {
   const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) return;
+  const files = Array.from(target.files || []);
+  if (!files.length) return;
 
   error.value = "";
 
-  const sizeMB = file.size / (1024 * 1024);
-  if (sizeMB > 50) {
-    error.value = "视频大小不能超过50MB";
-    return;
+  if (files.length !== requiredCount.value) {
+    error.value = `需要上传 ${requiredCount.value} 张图片`;
   }
-  fileSize.value = Number(sizeMB.toFixed(1));
 
-  const url = URL.createObjectURL(file);
-  videoUrl.value = url;
-
-  const video = document.createElement("video");
-  video.src = url;
-  video.onloadedmetadata = () => {
-    duration.value = Math.round(video.duration * 10) / 10;
-    if (video.duration > 5) {
-      error.value = "视频时长超过5秒，请裁剪后上传";
-    } else if (video.duration < 1) {
-      error.value = "视频时长不足1秒";
-    }
-  };
-
-  cardStore.setVideo(file);
-};
-
-const handleCropConfirm = async ({
-  startTime,
-  endTime,
-  duration: cropDuration,
-}: {
-  startTime: number;
-  endTime: number;
-  duration: number;
-}) => {
-  showCropper.value = false;
-  isCropped.value = true;
-  croppedDuration.value = Math.round(cropDuration * 10) / 10;
-  error.value = "";
-
-  showToast({
-    message: "裁剪成功",
-    icon: "success",
-  });
-
-  cardStore.cropInfo = { startTime, endTime };
-};
-
-const handleCropCancel = () => {
-  showCropper.value = false;
+  const urls = files.map((file) => URL.createObjectURL(file));
+  images.value = urls;
 };
 
 const reupload = () => {
-  videoUrl.value = "";
-  croppedVideoUrl.value = "";
-  duration.value = 0;
-  croppedDuration.value = 0;
-  fileSize.value = 0;
+  images.value = [];
   error.value = "";
-  isCropped.value = false;
   if (fileInput.value) {
     fileInput.value.value = "";
   }
@@ -216,7 +158,9 @@ const reupload = () => {
 
 const nextStep = () => {
   if (!canProceed.value) return;
-  router.push("/create/frames");
+  cardStore.setFrames(images.value);
+  cardStore.setFrameRate(selectedRate.value);
+  router.push("/create/decorate");
 };
 </script>
 
@@ -231,6 +175,36 @@ const nextStep = () => {
 .content {
   flex: 1;
   padding: 24px 16px;
+}
+
+.frame-rate {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.rate-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rate-btn {
+  min-width: 64px;
+}
+
+.rate-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 10px;
 }
 
 .upload-area {
@@ -265,6 +239,42 @@ const nextStep = () => {
 .video-preview {
   width: 100%;
   max-height: 300px;
+  border-radius: 10px;
+}
+
+.thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.thumb {
+  position: relative;
+  width: 100%;
+  padding-top: 120%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f3f4f6;
+}
+
+.thumb img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-num {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
   border-radius: 10px;
 }
 

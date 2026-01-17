@@ -6,11 +6,13 @@
 
     <div class="hero">
       <h2 class="hero-title">创建你的光栅卡</h2>
-      <p class="hero-desc">上传视频，定制边框，生成独一无二的动态卡片</p>
-      <van-button 
-        type="primary" 
-        size="large" 
-        round 
+      <p class="hero-desc">
+        选择帧率并上传图片，定制边框，生成独一无二的动态卡片
+      </p>
+      <van-button
+        type="primary"
+        size="large"
+        round
         class="create-btn"
         @click="goCreate"
       >
@@ -40,20 +42,15 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { Button as VanButton } from 'vant'
+import { useRouter } from "vue-router";
+import { Button as VanButton } from "vant";
 
-const router = useRouter()
+const router = useRouter();
 
-const steps = [
-  '上传视频',
-  '抽帧预览',
-  '装饰边框',
-  '3D预览'
-]
+const steps = ["选择帧率", "上传图片", "装饰边框", "3D预览"];
 
 function goCreate() {
-  router.push('/create')
+  router.push("/create");
 }
 </script>
 
@@ -69,7 +66,7 @@ function goCreate() {
 .logo {
   font-size: 24px;
   font-weight: 600;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .hero {
@@ -80,20 +77,20 @@ function goCreate() {
 .hero-title {
   font-size: 28px;
   font-weight: 600;
-  color: #1A1A1A;
+  color: #1a1a1a;
   margin-bottom: 12px;
 }
 
 .hero-desc {
   font-size: 14px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-bottom: 32px;
 }
 
 .create-btn {
   width: 200px;
-  background: #1A1A1A !important;
-  border-color: #1A1A1A !important;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
   position: relative;
   z-index: 10;
   cursor: pointer;
@@ -106,7 +103,7 @@ function goCreate() {
 .section-title {
   font-size: 18px;
   font-weight: 500;
-  color: #1A1A1A;
+  color: #1a1a1a;
   margin-bottom: 16px;
 }
 
@@ -124,7 +121,7 @@ function goCreate() {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #1A1A1A;
+  background: #1a1a1a;
   color: #fff;
   display: flex;
   align-items: center;
@@ -136,7 +133,7 @@ function goCreate() {
 
 .step-text {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .gallery {
@@ -154,6 +151,6 @@ function goCreate() {
 .gallery-placeholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
 }
 </style>
