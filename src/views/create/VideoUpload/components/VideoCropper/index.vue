@@ -4,8 +4,8 @@
       <h3 class="title">裁剪视频</h3>
       <div class="header-actions">
         <van-button size="small" @click="handleCancel">取消</van-button>
-        <van-button 
-          type="primary" 
+        <van-button
+          type="primary"
           size="small"
           :disabled="!isValidRange"
           @click="handleConfirm"
@@ -16,9 +16,9 @@
     </div>
 
     <div class="video-preview-container">
-      <video 
+      <video
         ref="videoRef"
-        :src="videoUrl" 
+        :src="videoUrl"
         class="video-preview"
         @loadedmetadata="handleVideoLoaded"
         @timeupdate="handleTimeUpdate"
@@ -28,15 +28,15 @@
 
     <div class="timeline-container">
       <div class="timeline">
-        <div 
+        <div
           class="timeline-track"
           ref="timelineTrack"
           @mousedown="handleTrackClick"
           @touchstart="handleTrackClick"
         >
           <!-- 最大范围引导线 -->
-          <div 
-            v-for="guide in guideLines" 
+          <div
+            v-for="guide in guideLines"
             :key="guide.id"
             class="guide-line"
             :class="{ active: guide.active }"
@@ -45,22 +45,22 @@
             <div class="guide-marker"></div>
             <div class="guide-label">{{ guide.label }}</div>
           </div>
-          
+
           <!-- 选中区域 -->
-          <div 
+          <div
             class="selected-range"
-            :class="{ 
-              valid: isValidRange, 
+            :class="{
+              valid: isValidRange,
               warning: duration > 4.5 && duration <= 5,
-              invalid: !isValidRange 
+              invalid: !isValidRange,
             }"
             :style="selectedRangeStyle"
           >
             <div class="range-duration">{{ formatTime(duration) }}</div>
           </div>
-          
+
           <!-- 左侧滑块 -->
-          <div 
+          <div
             class="slider slider-start"
             :class="{ dragging: isDragging && dragType === 'start' }"
             :style="{ left: `${startPercent}%` }"
@@ -73,9 +73,9 @@
             </div>
             <div class="slider-time">{{ formatTime(startTime) }}</div>
           </div>
-          
+
           <!-- 右侧滑块 -->
-          <div 
+          <div
             class="slider slider-end"
             :class="{ dragging: isDragging && dragType === 'end' }"
             :style="{ left: `${endPercent}%` }"
@@ -98,236 +98,244 @@
     </div>
 
     <div class="controls">
-      <van-button 
+      <van-button
         size="small"
         plain
         @click="playPreview"
         :icon="isPlaying ? 'pause' : 'play'"
       >
-        {{ isPlaying ? '暂停' : '预览' }}
+        {{ isPlaying ? "暂停" : "预览" }}
       </van-button>
-      <van-button 
-        size="small"
-        plain
-        @click="resetRange"
-      >
-        重置
-      </van-button>
+      <van-button size="small" plain @click="resetRange"> 重置 </van-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Button as VanButton } from 'vant'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { Button as VanButton } from "vant";
 
 interface Props {
-  videoUrl: string
-  maxDuration?: number
+  videoUrl: string;
+  maxDuration?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  maxDuration: 5
-})
+  maxDuration: 5,
+});
 
 const emit = defineEmits<{
-  confirm: [{ startTime: number; endTime: number; duration: number }]
-  cancel: []
-}>()
+  confirm: [{ startTime: number; endTime: number; duration: number }];
+  cancel: [];
+}>();
 
-const videoRef = ref<HTMLVideoElement | null>(null)
-const timelineTrack = ref<HTMLDivElement | null>(null)
-const videoDuration = ref(0)
-const currentTime = ref(0)
-const startTime = ref(0)
-const endTime = ref(5)
-const isPlaying = ref(false)
-const isDragging = ref(false)
-const dragType = ref<'start' | 'end' | null>(null)
+const videoRef = ref<HTMLVideoElement | null>(null);
+const timelineTrack = ref<HTMLDivElement | null>(null);
+const videoDuration = ref(0);
+const currentTime = ref(0);
+const startTime = ref(0);
+const endTime = ref(5);
+const isPlaying = ref(false);
+const isDragging = ref(false);
+const dragType = ref<"start" | "end" | null>(null);
 
-const duration = computed(() => endTime.value - startTime.value)
-const startPercent = computed(() => (startTime.value / videoDuration.value) * 100)
-const endPercent = computed(() => (endTime.value / videoDuration.value) * 100)
+const duration = computed(() => endTime.value - startTime.value);
+const startPercent = computed(
+  () => (startTime.value / videoDuration.value) * 100
+);
+const endPercent = computed(() => (endTime.value / videoDuration.value) * 100);
 const selectedRangeStyle = computed(() => ({
   left: `${startPercent.value}%`,
-  width: `${endPercent.value - startPercent.value}%`
-}))
+  width: `${endPercent.value - startPercent.value}%`,
+}));
 const isValidRange = computed(() => {
-  const d = duration.value
-  return d >= 1 && d <= props.maxDuration
-})
+  const d = duration.value;
+  return d >= 1 && d <= props.maxDuration;
+});
 
 // 引导线：显示从起点开始的最大5秒范围
 const guideLines = computed(() => {
-  const lines = []
-  const maxDuration = props.maxDuration
-  
+  const lines = [];
+  const maxDuration = props.maxDuration;
+
   // 如果视频总时长 <= 5秒，不需要引导线
-  if (videoDuration.value <= maxDuration) return []
-  
+  if (videoDuration.value <= maxDuration) return [];
+
   // 从当前起点计算最大范围
-  const maxEndTime = Math.min(startTime.value + maxDuration, videoDuration.value)
-  const maxEndPercent = (maxEndTime / videoDuration.value) * 100
-  
+  const maxEndTime = Math.min(
+    startTime.value + maxDuration,
+    videoDuration.value
+  );
+  const maxEndPercent = (maxEndTime / videoDuration.value) * 100;
+
   // 只在起点滑块被拖动或选择范围接近最大值时显示引导线
-  const showGuide = isDragging.value || duration.value > maxDuration - 1
-  
+  const showGuide = isDragging.value || duration.value > maxDuration - 1;
+
   if (showGuide && maxEndTime < videoDuration.value) {
     lines.push({
-      id: 'max-range',
+      id: "max-range",
       percent: maxEndPercent,
-      label: '最大范围',
-      active: duration.value > maxDuration - 0.5
-    })
+      label: "最大范围",
+      active: duration.value > maxDuration - 0.5,
+    });
   }
-  
-  return lines
-})
+
+  return lines;
+});
 
 // 状态提示
 const statusClass = computed(() => {
   if (!isValidRange.value) {
-    if (duration.value < 1) return 'status-error'
-    if (duration.value > props.maxDuration) return 'status-error'
+    if (duration.value < 1) return "status-error";
+    if (duration.value > props.maxDuration) return "status-error";
   }
-  if (duration.value > 4.5 && duration.value <= 5) return 'status-warning'
-  return 'status-success'
-})
+  if (duration.value > 4.5 && duration.value <= 5) return "status-warning";
+  return "status-success";
+});
 
 const statusIcon = computed(() => {
-  const cls = statusClass.value
-  if (cls === 'status-error') return 'warning-o'
-  if (cls === 'status-warning') return 'info-o'
-  return 'success'
-})
+  const cls = statusClass.value;
+  if (cls === "status-error") return "warning-o";
+  if (cls === "status-warning") return "info-o";
+  return "success";
+});
 
 const statusText = computed(() => {
-  const d = duration.value
-  if (d < 1) return '时长不足1秒，请继续选择'
-  if (d > props.maxDuration) return `时长超过${props.maxDuration}秒，请缩短范围`
-  if (d > 4.5) return '已接近最大时长'
-  return `已选择 ${formatTime(d)}，可继续调整`
-})
+  const d = duration.value;
+  if (d < 1) return "时长不足1秒，请继续选择";
+  if (d > props.maxDuration)
+    return `时长超过${props.maxDuration}秒，请缩短范围`;
+  if (d > 4.5) return "已接近最大时长";
+  return `已选择 ${formatTime(d)}，可继续调整`;
+});
 
 const formatTime = (seconds: number) => {
-  const s = Math.floor(seconds * 10) / 10
-  return `${s.toFixed(1)}s`
-}
+  const s = Math.floor(seconds * 10) / 10;
+  return `${s.toFixed(1)}s`;
+};
 
 const handleVideoLoaded = () => {
-  if (!videoRef.value) return
-  videoDuration.value = videoRef.value.duration
-  endTime.value = Math.min(props.maxDuration, videoDuration.value)
-}
+  if (!videoRef.value) return;
+  videoDuration.value = videoRef.value.duration;
+  endTime.value = Math.min(props.maxDuration, videoDuration.value);
+};
 
 const handleTimeUpdate = () => {
-  if (!videoRef.value) return
-  currentTime.value = videoRef.value.currentTime
-  
+  if (!videoRef.value) return;
+  currentTime.value = videoRef.value.currentTime;
+
   if (isPlaying.value && currentTime.value >= endTime.value) {
-    videoRef.value.pause()
-    videoRef.value.currentTime = startTime.value
-    isPlaying.value = false
+    videoRef.value.pause();
+    videoRef.value.currentTime = startTime.value;
+    isPlaying.value = false;
   }
-}
+};
 
 const handleTrackClick = (e: MouseEvent | TouchEvent) => {
-  if (!timelineTrack.value || !videoRef.value) return
-  
-  const rect = timelineTrack.value.getBoundingClientRect()
-  const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-  const percent = (clientX - rect.left) / rect.width
-  const time = percent * videoDuration.value
-  
-  videoRef.value.currentTime = time
-  currentTime.value = time
-}
+  if (!timelineTrack.value || !videoRef.value) return;
 
-const startDrag = (type: 'start' | 'end', e: MouseEvent | TouchEvent) => {
-  isDragging.value = true
-  dragType.value = type
-  
+  const rect = timelineTrack.value.getBoundingClientRect();
+  const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+  const percent = (clientX - rect.left) / rect.width;
+  const time = percent * videoDuration.value;
+
+  videoRef.value.currentTime = time;
+  currentTime.value = time;
+};
+
+const startDrag = (type: "start" | "end", e: MouseEvent | TouchEvent) => {
+  isDragging.value = true;
+  dragType.value = type;
+
   const handleMove = (moveE: MouseEvent | TouchEvent) => {
-    if (!isDragging.value || !timelineTrack.value) return
-    
-    const rect = timelineTrack.value.getBoundingClientRect()
-    const clientX = 'touches' in moveE ? moveE.touches[0].clientX : moveE.clientX
-    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
-    const time = percent * videoDuration.value
-    
-    if (type === 'start') {
-      startTime.value = Math.max(0, Math.min(time, endTime.value - 1))
+    if (!isDragging.value || !timelineTrack.value) return;
+
+    const rect = timelineTrack.value.getBoundingClientRect();
+    const clientX =
+      "touches" in moveE ? moveE.touches[0].clientX : moveE.clientX;
+    const percent = Math.max(
+      0,
+      Math.min(1, (clientX - rect.left) / rect.width)
+    );
+    const time = percent * videoDuration.value;
+
+    if (type === "start") {
+      startTime.value = Math.max(0, Math.min(time, endTime.value - 1));
     } else {
-      endTime.value = Math.min(videoDuration.value, Math.max(time, startTime.value + 1))
+      endTime.value = Math.min(
+        videoDuration.value,
+        Math.max(time, startTime.value + 1)
+      );
     }
-    
+
     if (videoRef.value) {
-      videoRef.value.currentTime = type === 'start' ? startTime.value : endTime.value
+      videoRef.value.currentTime =
+        type === "start" ? startTime.value : endTime.value;
     }
-  }
-  
+  };
+
   const handleEnd = () => {
-    isDragging.value = false
-    dragType.value = null
-    document.removeEventListener('mousemove', handleMove)
-    document.removeEventListener('mouseup', handleEnd)
-    document.removeEventListener('touchmove', handleMove)
-    document.removeEventListener('touchend', handleEnd)
-  }
-  
-  document.addEventListener('mousemove', handleMove)
-  document.addEventListener('mouseup', handleEnd)
-  document.addEventListener('touchmove', handleMove)
-  document.addEventListener('touchend', handleEnd)
-}
+    isDragging.value = false;
+    dragType.value = null;
+    document.removeEventListener("mousemove", handleMove);
+    document.removeEventListener("mouseup", handleEnd);
+    document.removeEventListener("touchmove", handleMove);
+    document.removeEventListener("touchend", handleEnd);
+  };
+
+  document.addEventListener("mousemove", handleMove);
+  document.addEventListener("mouseup", handleEnd);
+  document.addEventListener("touchmove", handleMove);
+  document.addEventListener("touchend", handleEnd);
+};
 
 const playPreview = () => {
-  if (!videoRef.value) return
-  
+  if (!videoRef.value) return;
+
   if (isPlaying.value) {
-    videoRef.value.pause()
-    isPlaying.value = false
+    videoRef.value.pause();
+    isPlaying.value = false;
   } else {
-    videoRef.value.currentTime = startTime.value
-    videoRef.value.play()
-    isPlaying.value = true
+    videoRef.value.currentTime = startTime.value;
+    videoRef.value.play();
+    isPlaying.value = true;
   }
-}
+};
 
 const resetRange = () => {
-  startTime.value = 0
-  endTime.value = Math.min(props.maxDuration, videoDuration.value)
+  startTime.value = 0;
+  endTime.value = Math.min(props.maxDuration, videoDuration.value);
   if (videoRef.value) {
-    videoRef.value.currentTime = 0
-    videoRef.value.pause()
+    videoRef.value.currentTime = 0;
+    videoRef.value.pause();
   }
-  isPlaying.value = false
-}
+  isPlaying.value = false;
+};
 
 const handleConfirm = () => {
-  if (!isValidRange.value) return
-  emit('confirm', {
+  if (!isValidRange.value) return;
+  emit("confirm", {
     startTime: startTime.value,
     endTime: endTime.value,
-    duration: duration.value
-  })
-}
+    duration: duration.value,
+  });
+};
 
 const handleCancel = () => {
-  emit('cancel')
-}
+  emit("cancel");
+};
 
 onMounted(() => {
   if (videoRef.value) {
-    videoRef.value.load()
+    videoRef.value.load();
   }
-})
+});
 
 onUnmounted(() => {
   if (videoRef.value) {
-    videoRef.value.pause()
+    videoRef.value.pause();
   }
-})
+});
 </script>
 
 <style scoped>
@@ -335,7 +343,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #FAFAFA;
+  background: #fafafa;
   overflow: hidden;
 }
 
@@ -345,14 +353,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid #f3f4f6;
   flex-shrink: 0;
 }
 
 .title {
   font-size: 17px;
   font-weight: 500;
-  color: #1A1A1A;
+  color: #1a1a1a;
 }
 
 .header-actions {
@@ -367,13 +375,18 @@ onUnmounted(() => {
   justify-content: center;
   padding: 16px;
   position: relative;
+  min-height: 0;
+  max-height: calc(100vh - 400px);
 }
 
 .video-preview {
   max-width: 100%;
   max-height: 100%;
+  width: auto;
+  height: auto;
   border-radius: 12px;
   background: #000;
+  object-fit: contain;
 }
 
 .current-time {
@@ -400,7 +413,7 @@ onUnmounted(() => {
 
 .timeline-track {
   height: 48px;
-  background: #F3F4F6;
+  background: #f3f4f6;
   border-radius: 8px;
   position: relative;
   cursor: pointer;
@@ -411,14 +424,14 @@ onUnmounted(() => {
   top: -8px;
   bottom: -8px;
   width: 2px;
-  background: #D1D5DB;
+  background: #d1d5db;
   pointer-events: none;
   transition: all 0.3s ease;
   z-index: 5;
 }
 
 .guide-line.active {
-  background: #F59E0B;
+  background: #f59e0b;
   width: 3px;
 }
 
@@ -439,7 +452,8 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
   }
   50% {
@@ -453,7 +467,7 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
   font-size: 11px;
-  color: #9CA3AF;
+  color: #9ca3af;
   white-space: nowrap;
   background: #fff;
   padding: 2px 8px;
@@ -462,7 +476,7 @@ onUnmounted(() => {
 }
 
 .guide-line.active .guide-label {
-  color: #F59E0B;
+  color: #f59e0b;
   font-weight: 500;
 }
 
@@ -494,7 +508,7 @@ onUnmounted(() => {
 .range-duration {
   font-size: 13px;
   font-weight: 600;
-  color: #1A1A1A;
+  color: #1a1a1a;
   background: rgba(255, 255, 255, 0.95);
   padding: 3px 10px;
   border-radius: 12px;
@@ -521,7 +535,7 @@ onUnmounted(() => {
 .slider-line {
   width: 3px;
   height: 100%;
-  background: #1A1A1A;
+  background: #1a1a1a;
   border-radius: 2px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
   transition: all 0.2s;
@@ -531,7 +545,7 @@ onUnmounted(() => {
 
 .slider.dragging .slider-line {
   width: 4px;
-  background: #3B82F6;
+  background: #3b82f6;
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
 }
 
@@ -541,7 +555,7 @@ onUnmounted(() => {
   width: 20px;
   height: 20px;
   background: #fff;
-  border: 3px solid #1A1A1A;
+  border: 3px solid #1a1a1a;
   border-radius: 50%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -552,20 +566,20 @@ onUnmounted(() => {
 
 .slider.dragging .slider-dot {
   transform: scale(1.2);
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
 }
 
 .dot-inner {
   width: 6px;
   height: 6px;
-  background: #1A1A1A;
+  background: #1a1a1a;
   border-radius: 50%;
   transition: background 0.2s;
 }
 
 .slider.dragging .dot-inner {
-  background: #3B82F6;
+  background: #3b82f6;
 }
 
 .slider-time {
@@ -575,7 +589,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   font-size: 12px;
   font-weight: 500;
-  color: #1A1A1A;
+  color: #1a1a1a;
   background: #fff;
   padding: 4px 8px;
   border-radius: 6px;
@@ -595,12 +609,12 @@ onUnmounted(() => {
   justify-content: space-between;
   margin-top: 12px;
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   padding: 0 12px;
 }
 
 .duration-label {
-  color: #1A1A1A;
+  color: #1a1a1a;
   font-weight: 500;
 }
 
@@ -619,17 +633,17 @@ onUnmounted(() => {
 
 .status-success {
   background: rgba(34, 197, 94, 0.1);
-  color: #16A34A;
+  color: #16a34a;
 }
 
 .status-warning {
   background: rgba(245, 158, 11, 0.15);
-  color: #D97706;
+  color: #d97706;
 }
 
 .status-error {
   background: rgba(239, 68, 68, 0.15);
-  color: #DC2626;
+  color: #dc2626;
 }
 
 .controls {
@@ -638,7 +652,7 @@ onUnmounted(() => {
   gap: 12px;
   padding: 16px;
   background: #fff;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid #f3f4f6;
 }
 
 .footer {

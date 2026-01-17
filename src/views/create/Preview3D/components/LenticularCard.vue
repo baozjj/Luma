@@ -264,8 +264,8 @@ async function init() {
   const cornerRadius = 0.15; // 圆角半径
   const smoothness = 8; // 圆角平滑度
   const geometry = new RoundedBoxGeometry(
-    3.6,
-    5.04,
+    4.5,
+    6.3,
     cardThickness,
     smoothness,
     cornerRadius

@@ -222,7 +222,7 @@ const nextStep = () => {
 
 <style scoped>
 .video-upload {
-  max-height: 100vh;
+  min-height: 100vh;
   background: #fafafa;
   display: flex;
   flex-direction: column;
