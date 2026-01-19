@@ -10,6 +10,7 @@ import { createCompositeCardTexture } from "@/utils/cardCompositor";
 
 const props = defineProps<{
   frames: string[];
+  frameCount?: number;
   stickers?: any[];
   borderColor?: string;
   borderWidth?: string;
@@ -45,9 +46,8 @@ const vertexShader = `
 `;
 
 const fragmentShader = `
-  uniform sampler2D uTexture0;
-  uniform sampler2D uTexture1;
-  uniform sampler2D uTexture2;
+  uniform sampler2D uFramesTexture;
+  uniform float uFrameCount;
   uniform sampler2D uBorderMask;
   
   uniform float uLenses;
@@ -69,9 +69,9 @@ const fragmentShader = `
     float isBorder = maskColor.r; // 1.0 = 边框, 0.0 = 内容区域
     
     // 读取纹理颜色（包含贴纸）
-    vec4 tex0 = texture2D(uTexture0, vUv);
-    vec4 tex1 = texture2D(uTexture1, vUv);
-    vec4 tex2 = texture2D(uTexture2, vUv);
+    vec4 tex0 = texture2D(uFramesTexture, vec2(vUv.x / uFrameCount, vUv.y));
+    vec4 tex1 = texture2D(uFramesTexture, vec2((vUv.x + 1.0) / uFrameCount, vUv.y));
+    vec4 tex2 = texture2D(uFramesTexture, vec2((vUv.x + 2.0) / uFrameCount, vUv.y));
     
     vec3 finalColor;
     vec3 finalNormal = vNormal;
@@ -115,25 +115,21 @@ const fragmentShader = `
       );
 
       float viewAngle = dot(vViewDir, tangent);
-      float compositePhase = (viewAngle * uRefraction) + (vUv.x * uPitch);
-      
-      float prog = mod(compositePhase, 3.0);
-      if(prog < 0.0) prog += 3.0;
+      float viewPhase = (clamp(viewAngle * 2.1, -1.0, 1.0) + 1.0) * 0.5;
+      float lastIndex = max(uFrameCount - 1.0, 0.0);
+      float framePhase = (1.0 - viewPhase) * lastIndex;
 
-      float w0 = max(0.0, 1.0 - abs(prog - 0.0)) + max(0.0, 1.0 - abs(prog - 3.0));
-      float w1 = max(0.0, 1.0 - abs(prog - 1.0));
-      float w2 = max(0.0, 1.0 - abs(prog - 2.0));
-      
-      w0 = pow(w0, uFocus);
-      w1 = pow(w1, uFocus);
-      w2 = pow(w2, uFocus);
-      
-      float totalW = w0 + w1 + w2;
-      w0 /= totalW;
-      w1 /= totalW;
-      w2 /= totalW;
+      float idx0 = floor(framePhase);
+      float idx1 = min(idx0 + 1.0, lastIndex);
+      float t = fract(framePhase);
 
-      finalColor = (tex0.rgb * w0) + (tex1.rgb * w1) + (tex2.rgb * w2);
+      vec2 uv0 = vec2((vUv.x + idx0) / uFrameCount, vUv.y);
+      vec2 uv1 = vec2((vUv.x + idx1) / uFrameCount, vUv.y);
+      vec3 color0 = texture2D(uFramesTexture, uv0).rgb;
+      vec3 color1 = texture2D(uFramesTexture, uv1).rgb;
+
+      t = pow(t, uFocus);
+      finalColor = mix(color0, color1, t);
 
       vec3 halfVec = normalize(vLightDir + vViewDir);
       float NdotH = max(0.0, dot(finalNormal, halfVec));
@@ -150,18 +146,39 @@ const fragmentShader = `
   }
 `;
 
-async function createFrameTexture(
-  imageSrc: string,
-  index: number
-): Promise<THREE.Texture> {
-  const canvas = await createCompositeCardTexture({
-    frameImage: imageSrc,
+async function createFramesAtlasTexture(): Promise<THREE.Texture> {
+  const orderedFrames = props.frames.slice(
+    0,
+    props.frameCount || props.frames.length
+  );
+  const baseFrame = orderedFrames[0] || "";
+  const baseCanvas = await createCompositeCardTexture({
+    frameImage: baseFrame,
     stickers: props.stickers || [],
     borderColor: props.borderColor || "#FFFFFF",
-    borderWidth: (props.borderWidth as "narrow" | "medium" | "wide") || "wide",
+    borderWidth:
+      (props.borderWidth as "narrow" | "medium" | "wide") || "narrow",
   });
 
-  const texture = new THREE.CanvasTexture(canvas);
+  const atlas = document.createElement("canvas");
+  atlas.width = baseCanvas.width * Math.max(orderedFrames.length, 1);
+  atlas.height = baseCanvas.height;
+  const ctx = atlas.getContext("2d")!;
+
+  ctx.drawImage(baseCanvas, 0, 0);
+
+  for (let i = 1; i < orderedFrames.length; i++) {
+    const canvas = await createCompositeCardTexture({
+      frameImage: orderedFrames[i],
+      stickers: props.stickers || [],
+      borderColor: props.borderColor || "#FFFFFF",
+      borderWidth:
+        (props.borderWidth as "narrow" | "medium" | "wide") || "narrow",
+    });
+    ctx.drawImage(canvas, i * baseCanvas.width, 0);
+  }
+
+  const texture = new THREE.CanvasTexture(atlas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 16;
   return texture;
@@ -182,7 +199,7 @@ function createBorderMask(): THREE.Texture {
   };
   const borderPx =
     borderWidthMap[
-      (props.borderWidth as "narrow" | "medium" | "wide") || "wide"
+      (props.borderWidth as "narrow" | "medium" | "wide") || "narrow"
     ];
 
   // 整个画布填充白色（边框）
@@ -250,14 +267,17 @@ async function init() {
   fillLight.position.set(0, -5, 5);
   scene.add(fillLight);
 
-  const textures = await Promise.all([
-    createFrameTexture(props.frames[0] || "", 0),
-    createFrameTexture(props.frames[1] || props.frames[0] || "", 1),
-    createFrameTexture(props.frames[2] || props.frames[0] || "", 2),
-  ]);
+  const framesTexture = await createFramesAtlasTexture();
 
   const borderMask = createBorderMask();
   const borderColor = hexToRgb(props.borderColor || "#FFFFFF");
+  const frameCount = Math.max(
+    Math.min(
+      props.frameCount || props.frames.length || 1,
+      props.frames.length || 1
+    ),
+    1
+  );
 
   // 使用 RoundedBoxGeometry 创建有厚度和圆角的卡片
   const cardThickness = 0.08;
@@ -276,9 +296,8 @@ async function init() {
     vertexShader,
     fragmentShader,
     uniforms: {
-      uTexture0: { value: textures[0] },
-      uTexture1: { value: textures[1] },
-      uTexture2: { value: textures[2] },
+      uFramesTexture: { value: framesTexture },
+      uFrameCount: { value: frameCount },
       uBorderMask: { value: borderMask },
       uBorderColor: { value: borderColor },
       uLenses: { value: 120.0 },
@@ -415,11 +434,7 @@ function cleanup() {
 
 async function updateTextures() {
   if (mesh && Array.isArray(mesh.material)) {
-    const textures = await Promise.all([
-      createFrameTexture(props.frames[0] || "", 0),
-      createFrameTexture(props.frames[1] || props.frames[0] || "", 1),
-      createFrameTexture(props.frames[2] || props.frames[0] || "", 2),
-    ]);
+    const framesTexture = await createFramesAtlasTexture();
 
     const borderMask = createBorderMask();
     const borderColor = hexToRgb(props.borderColor || "#FFFFFF");
@@ -428,18 +443,24 @@ async function updateTextures() {
     const frontMaterial = mesh.material[4] as THREE.ShaderMaterial;
     const backMaterial = mesh.material[5] as THREE.ShaderMaterial;
 
+    const frameCount = Math.max(
+      Math.min(
+        props.frameCount || props.frames.length || 1,
+        props.frames.length || 1
+      ),
+      1
+    );
+
     if (frontMaterial.uniforms) {
-      frontMaterial.uniforms.uTexture0.value = textures[0];
-      frontMaterial.uniforms.uTexture1.value = textures[1];
-      frontMaterial.uniforms.uTexture2.value = textures[2];
+      frontMaterial.uniforms.uFramesTexture.value = framesTexture;
+      frontMaterial.uniforms.uFrameCount.value = frameCount;
       frontMaterial.uniforms.uBorderMask.value = borderMask;
       frontMaterial.uniforms.uBorderColor.value = borderColor;
     }
 
     if (backMaterial.uniforms) {
-      backMaterial.uniforms.uTexture0.value = textures[0];
-      backMaterial.uniforms.uTexture1.value = textures[1];
-      backMaterial.uniforms.uTexture2.value = textures[2];
+      backMaterial.uniforms.uFramesTexture.value = framesTexture;
+      backMaterial.uniforms.uFrameCount.value = frameCount;
       backMaterial.uniforms.uBorderMask.value = borderMask;
       backMaterial.uniforms.uBorderColor.value = borderColor;
     }

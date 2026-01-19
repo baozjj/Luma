@@ -86,7 +86,7 @@ const toolMenuPosition = ref("top");
 
 const borderSettings = ref({
   color: "#FFFFFF",
-  width: "wide",
+  width: "narrow",
 });
 
 const stickers = ref([]);

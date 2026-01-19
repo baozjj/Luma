@@ -12,6 +12,7 @@
       <div class="preview-container">
         <LenticularCard
           :frames="frames"
+          :frame-count="frameCount"
           :stickers="stickers"
           :border-color="borderColor"
           :border-width="borderWidth"
@@ -71,6 +72,7 @@ const router = useRouter();
 const cardStore = useCardStore();
 
 const frames = computed(() => cardStore.frames);
+const frameCount = computed(() => cardStore.frameRate || frames.value.length);
 const stickers = computed(() => cardStore.stickers);
 const borderColor = computed(() => cardStore.borderColor);
 const borderWidth = computed(() => cardStore.borderWidth);
